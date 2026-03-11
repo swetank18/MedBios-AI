@@ -2,96 +2,78 @@ import { useState } from 'react';
 
 function AbnormalFindings({ labValues = [], compact = false }) {
   const [showAll, setShowAll] = useState(false);
+  const display = showAll ? labValues : labValues.filter(l => l.status !== 'normal');
+  const abnormalCount = labValues.filter(l => l.status !== 'normal').length;
 
-  const abnormal = labValues.filter(l => l.status !== 'normal');
-  const normal = labValues.filter(l => l.status === 'normal');
-  const displayValues = compact ? abnormal.slice(0, 5) : (showAll ? labValues : abnormal);
-
-  const getStatusBadge = (status) => {
-    const labels = {
-      critical_low: '🔴 CRITICAL LOW',
-      critical_high: '🔴 CRITICAL HIGH',
-      low: '🟡 LOW',
-      high: '🟠 HIGH',
-      normal: '🟢 NORMAL',
-    };
-    return labels[status] || status;
+  const statusStyles = {
+    critical_high: 'bg-accent-red/15 text-accent-red',
+    critical_low: 'bg-accent-red/15 text-accent-red',
+    high: 'bg-accent-orange/15 text-accent-orange',
+    low: 'bg-accent-yellow/15 text-accent-yellow',
+    normal: 'bg-accent-green/15 text-accent-green',
   };
+
+  if (compact) {
+    return (
+      <div className="glass-card">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">Key Findings</h3>
+          <span className="text-xs text-accent-orange">{abnormalCount} abnormal</span>
+        </div>
+        <div className="space-y-2">
+          {labValues.filter(l => l.status !== 'normal').slice(0, 6).map((lab, i) => (
+            <div key={i} className="flex items-center justify-between text-sm">
+              <span className="text-text-secondary">{lab.test_name}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-text-primary font-medium">{lab.value} {lab.unit || ''}</span>
+                <span className={`px-1.5 py-0.5 rounded text-[0.65rem] font-medium ${statusStyles[lab.status] || statusStyles.normal}`}>
+                  {lab.status?.replace('_', ' ').toUpperCase()}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="glass-card">
-      <div className="card-header">
-        <div className="card-icon" style={{ background: 'rgba(249, 115, 22, 0.15)' }}>🔍</div>
-        <h3>
-          {compact ? 'Key Findings' : 'Lab Values & Findings'}
-          {abnormal.length > 0 && (
-            <span style={{ marginLeft: 8, fontSize: '0.8rem', color: 'var(--status-high)' }}>
-              ({abnormal.length} abnormal)
-            </span>
-          )}
-        </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">Lab Values</h3>
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="text-xs text-accent-blue hover:text-accent-blue/80 transition"
+        >
+          {showAll ? `Show Abnormal (${abnormalCount})` : `Show All (${labValues.length})`}
+        </button>
       </div>
-
-      {displayValues.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 20 }}>
-          {labValues.length === 0 ? 'No lab values extracted' : 'All values within normal range ✅'}
-        </p>
-      ) : (
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Test</th>
-              <th>Value</th>
-              <th>Reference Range</th>
-              <th>Status</th>
+      <table className="data-table">
+        <thead>
+          <tr>
+            <th>Test</th>
+            <th>Value</th>
+            <th>Status</th>
+            <th>Reference</th>
+          </tr>
+        </thead>
+        <tbody>
+          {display.map((lab, i) => (
+            <tr key={i}>
+              <td className="text-text-primary font-medium">{lab.test_name}</td>
+              <td>{lab.value} {lab.unit || ''}</td>
+              <td>
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${statusStyles[lab.status] || statusStyles.normal}`}>
+                  {lab.status?.replace('_', ' ').toUpperCase()}
+                </span>
+              </td>
+              <td className="text-text-muted text-xs">
+                {lab.reference_min != null ? `${lab.reference_min} - ${lab.reference_max}` : '-'}
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {displayValues.map((lab, i) => (
-              <tr key={i}>
-                <td style={{ fontWeight: lab.status !== 'normal' ? 600 : 400 }}>
-                  {lab.test_name || lab.canonical_name}
-                </td>
-                <td className="value-cell" style={{ 
-                  color: lab.status === 'normal' ? 'var(--text-primary)' : 
-                         lab.status?.includes('critical') ? 'var(--status-critical)' : 'var(--status-high)'
-                }}>
-                  {lab.value} {lab.unit || lab.expected_unit || ''}
-                </td>
-                <td style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
-                  {lab.reference_min != null && lab.reference_max != null
-                    ? `${lab.reference_min} – ${lab.reference_max}`
-                    : lab.reference_range || '—'}
-                </td>
-                <td>
-                  <span className={`badge badge-${lab.status}`}>
-                    {getStatusBadge(lab.status)}
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-
-      {!compact && labValues.length > abnormal.length && (
-        <div style={{ marginTop: 16, textAlign: 'center' }}>
-          <button
-            className="btn btn-secondary"
-            onClick={() => setShowAll(!showAll)}
-          >
-            {showAll ? `Show Abnormal Only (${abnormal.length})` : `Show All Values (${labValues.length})`}
-          </button>
-        </div>
-      )}
-
-      {compact && abnormal.length > 5 && (
-        <div style={{ marginTop: 12, textAlign: 'center' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-            +{abnormal.length - 5} more abnormal values
-          </span>
-        </div>
-      )}
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

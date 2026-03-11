@@ -9,10 +9,10 @@ import './App.css';
 function App() {
   return (
     <Router>
-      <div className="app">
-        <nav className="navbar">
-          <div className="nav-brand">
-            <svg viewBox="0 0 32 32" fill="none">
+      <div className="min-h-screen bg-bg-primary">
+        <nav className="sticky top-0 z-50 flex items-center justify-between px-6 py-3 border-b border-border-subtle bg-bg-primary/80 backdrop-blur-lg">
+          <div className="flex items-center gap-2.5 font-bold text-lg">
+            <svg className="w-8 h-8" viewBox="0 0 32 32" fill="none">
               <circle cx="16" cy="16" r="14" stroke="url(#grad)" strokeWidth="2.5"/>
               <path d="M16 8v16M12 12h8M12 20h8" stroke="url(#grad)" strokeWidth="2" strokeLinecap="round"/>
               <defs>
@@ -22,12 +22,32 @@ function App() {
                 </linearGradient>
               </defs>
             </svg>
-            MedBios AI
+            <span className="bg-gradient-to-r from-accent-blue to-accent-purple bg-clip-text text-transparent">
+              MedBios AI
+            </span>
           </div>
-          <ul className="nav-links">
-            <li><NavLink to="/" end>Dashboard</NavLink></li>
-            <li><NavLink to="/upload">Upload Report</NavLink></li>
-            <li><NavLink to="/drug-interactions">Drug Checker</NavLink></li>
+          <ul className="flex items-center gap-1">
+            {[
+              { to: '/', label: 'Dashboard', end: true },
+              { to: '/upload', label: 'Upload Report' },
+              { to: '/drug-interactions', label: 'Drug Checker' },
+            ].map(link => (
+              <li key={link.to}>
+                <NavLink
+                  to={link.to}
+                  end={link.end}
+                  className={({ isActive }) =>
+                    `px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-accent-blue/15 text-accent-blue'
+                        : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+                    }`
+                  }
+                >
+                  {link.label}
+                </NavLink>
+              </li>
+            ))}
           </ul>
         </nav>
         <Routes>

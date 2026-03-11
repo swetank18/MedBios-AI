@@ -3,14 +3,25 @@ import { Link } from 'react-router-dom';
 import { listReports, getAnalytics, getReportPdfUrl } from '../api';
 
 const CATEGORY_COLORS = {
-  Hematology: '#ef4444',
-  Cardiovascular: '#f97316',
-  Nephrology: '#eab308',
-  Endocrinology: '#22c55e',
-  Hepatology: '#14b8a6',
-  Electrolytes: '#0ea5e9',
-  Immunology: '#8b5cf6',
-  Nutrition: '#ec4899',
+  Hematology: 'bg-accent-red',
+  Cardiovascular: 'bg-accent-orange',
+  Nephrology: 'bg-accent-yellow',
+  Endocrinology: 'bg-accent-green',
+  Hepatology: 'bg-accent-teal',
+  Electrolytes: 'bg-accent-blue',
+  Immunology: 'bg-accent-purple',
+  Nutrition: 'bg-accent-pink',
+};
+
+const CATEGORY_TEXT = {
+  Hematology: 'text-accent-red',
+  Cardiovascular: 'text-accent-orange',
+  Nephrology: 'text-accent-yellow',
+  Endocrinology: 'text-accent-green',
+  Hepatology: 'text-accent-teal',
+  Electrolytes: 'text-accent-blue',
+  Immunology: 'text-accent-purple',
+  Nutrition: 'text-accent-pink',
 };
 
 function Dashboard() {
@@ -19,9 +30,7 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
@@ -31,7 +40,7 @@ function Dashboard() {
       ]);
       setReports(reportData);
       setAnalytics(analyticsData);
-    } catch (err) {
+    } catch {
       setError('Could not connect to backend. Make sure the server is running.');
     } finally {
       setLoading(false);
@@ -42,182 +51,143 @@ function Dashboard() {
   const catBreakdown = a.category_breakdown || {};
   const maxCatCount = Math.max(...Object.values(catBreakdown), 1);
 
+  const stats = [
+    { value: a.total_reports ?? reports.length, label: 'Reports Analyzed', color: 'text-accent-blue' },
+    { value: a.total_patients ?? '-', label: 'Patients Tracked', color: 'text-accent-purple' },
+    { value: a.total_lab_tests ?? '-', label: 'Lab Tests', color: 'text-accent-green' },
+    { value: a.total_insights ?? '-', label: 'Clinical Insights', color: 'text-accent-orange' },
+    { value: a.abnormal_count ?? '-', label: 'Abnormal Values', color: 'text-accent-red' },
+    { value: a.avg_risk_score ? `${a.avg_risk_score}%` : '-', label: 'Avg Risk Score', color: 'text-accent-pink' },
+  ];
+
   return (
-    <div className="page-container">
-      <div className="page-header slide-up">
-        <h1>Clinical Intelligence Dashboard</h1>
-        <p>AI-powered medical report analysis with clinical reasoning and explainable insights</p>
+    <div className="max-w-7xl mx-auto px-6 py-8">
+      {/* Header */}
+      <div className="slide-up mb-8">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-accent-blue to-accent-purple bg-clip-text text-transparent">
+          Clinical Intelligence Dashboard
+        </h1>
+        <p className="text-text-secondary mt-1">AI-powered medical report analysis with clinical reasoning and explainable insights</p>
       </div>
 
-      {/* Stats Overview — Live from DB */}
-      <div className="grid-3 fade-in" style={{ marginBottom: 24, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-        {[
-          { value: a.total_reports ?? reports.length, label: 'Reports Analyzed', icon: '📊', color: '#0ea5e9' },
-          { value: a.total_patients ?? '—', label: 'Patients Tracked', icon: '👤', color: '#8b5cf6' },
-          { value: a.total_lab_tests ?? '—', label: 'Lab Tests Processed', icon: '🧪', color: '#22c55e' },
-          { value: a.total_insights ?? '—', label: 'Clinical Insights', icon: '💡', color: '#f97316' },
-          { value: a.abnormal_count ?? '—', label: 'Abnormal Values', icon: '⚠️', color: '#ef4444' },
-          { value: a.avg_risk_score ? `${a.avg_risk_score}%` : '—', label: 'Avg Risk Score', icon: '🎯', color: '#ec4899' },
-        ].map((stat, i) => (
-          <div key={i} className="glass-card stat-card" style={{ textAlign: 'center', padding: '1.25rem' }}>
-            <div style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>{stat.icon}</div>
-            <div className="stat-value" style={{ color: stat.color, fontSize: '1.8rem' }}>
-              {stat.value}
-            </div>
-            <div className="stat-label">{stat.label}</div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6 fade-in">
+        {stats.map((stat, i) => (
+          <div key={i} className="glass-card text-center !p-4">
+            <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
+            <div className="text-[0.65rem] text-text-muted uppercase tracking-wider mt-1">{stat.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Category Breakdown + Knowledge Graph Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: 24 }}>
-        {/* Category Breakdown */}
-        <div className="glass-card fade-in">
-          <div className="card-header">
-            <div className="card-icon" style={{ background: 'rgba(139, 92, 246, 0.15)' }}>📈</div>
-            <h3>Insight Categories</h3>
-          </div>
+      {/* Category + KG */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6 fade-in">
+        <div className="glass-card">
+          <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">Insight Categories</h3>
           {Object.keys(catBreakdown).length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-              {Object.entries(catBreakdown)
-                .sort((a, b) => b[1] - a[1])
-                .map(([cat, count]) => (
-                  <div key={cat}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{cat}</span>
-                      <span style={{ color: CATEGORY_COLORS[cat] || 'var(--text-primary)', fontWeight: 700, fontSize: '0.85rem' }}>
-                        {count}
-                      </span>
-                    </div>
-                    <div style={{
-                      height: 6,
-                      borderRadius: 3,
-                      background: 'rgba(255,255,255,0.05)',
-                      overflow: 'hidden',
-                    }}>
-                      <div style={{
-                        height: '100%',
-                        width: `${(count / maxCatCount) * 100}%`,
-                        borderRadius: 3,
-                        background: CATEGORY_COLORS[cat] || '#0ea5e9',
-                        transition: 'width 1s ease',
-                      }} />
-                    </div>
+            <div className="space-y-3">
+              {Object.entries(catBreakdown).sort((a, b) => b[1] - a[1]).map(([cat, count]) => (
+                <div key={cat}>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm text-text-secondary">{cat}</span>
+                    <span className={`text-sm font-bold ${CATEGORY_TEXT[cat] || 'text-accent-blue'}`}>{count}</span>
                   </div>
-                ))}
+                  <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${CATEGORY_COLORS[cat] || 'bg-accent-blue'} transition-all duration-1000`}
+                      style={{ width: `${(count / maxCatCount) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
-            <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '2rem 0' }}>
-              Upload a report to see category breakdown
-            </p>
+            <p className="text-text-muted text-center py-8 text-sm">Upload a report to see category breakdown</p>
           )}
         </div>
 
-        {/* Knowledge Graph + Quick Stats */}
-        <div className="glass-card fade-in">
-          <div className="card-header">
-            <div className="card-icon" style={{ background: 'rgba(14, 165, 233, 0.15)' }}>🧠</div>
-            <h3>Knowledge Graph</h3>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+        <div className="glass-card">
+          <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">Knowledge Graph</h3>
+          <div className="grid grid-cols-2 gap-4 mb-4">
             {[
-              { label: 'Nodes', value: a.knowledge_graph?.total_nodes ?? '100+', color: '#0ea5e9' },
-              { label: 'Relationships', value: a.knowledge_graph?.total_edges ?? '115+', color: '#8b5cf6' },
+              { label: 'Nodes', value: a.knowledge_graph?.total_nodes ?? '100+', color: 'text-accent-blue' },
+              { label: 'Relationships', value: a.knowledge_graph?.total_edges ?? '115+', color: 'text-accent-purple' },
             ].map((s, i) => (
-              <div key={i} style={{ textAlign: 'center', padding: '1rem', background: 'rgba(255,255,255,0.03)', borderRadius: 8 }}>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: s.color }}>{s.value}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{s.label}</div>
+              <div key={i} className="text-center p-4 rounded-lg bg-white/[0.03]">
+                <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
+                <div className="text-[0.65rem] text-text-muted uppercase tracking-wider mt-1">{s.label}</div>
               </div>
             ))}
           </div>
-          <div className="badge badge-info" style={{ display: 'block', textAlign: 'center' }}>
-            Diseases • Lab Tests • Symptoms • Medications
+          <div className="text-center text-xs text-accent-blue/80 bg-accent-blue/10 rounded-lg py-2 px-3">
+            Diseases / Lab Tests / Symptoms / Medications
           </div>
         </div>
       </div>
 
-      {/* Pipeline Overview */}
-      <div className="glass-card fade-in" style={{ marginBottom: 24 }}>
-        <div className="card-header">
-          <div className="card-icon" style={{ background: 'rgba(14, 165, 233, 0.15)' }}>🔬</div>
-          <h3>Analysis Pipeline</h3>
-        </div>
-        <div className="pipeline-stages">
+      {/* Pipeline */}
+      <div className="glass-card mb-6 fade-in">
+        <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3">Analysis Pipeline</h3>
+        <div className="flex flex-wrap gap-2">
           {['PDF Upload', 'OCR Extraction', 'NLP Processing', 'Abnormal Detection',
             'Clinical Reasoning', 'Risk Scoring', 'Knowledge Graph', 'Report Generation'].map((stage, i) => (
-            <div key={i} className="pipeline-stage completed">
-              <span className="stage-dot"></span>
+            <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-accent-green/30 text-accent-green text-xs">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent-green" />
               {stage}
             </div>
           ))}
         </div>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: 12 }}>
-          8-stage multimodal pipeline • 50+ lab tests • 13 clinical rules • Explainable AI
-        </p>
+        <p className="text-text-muted text-xs mt-3">8-stage multimodal pipeline | 50+ lab tests | 13 clinical rules | Explainable AI</p>
       </div>
 
       {/* Quick Actions */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: 24 }}>
-        <Link to="/upload" style={{ textDecoration: 'none' }}>
-          <div className="glass-card" style={{ cursor: 'pointer', textAlign: 'center', padding: 32 }}>
-            <div style={{ fontSize: '2rem', marginBottom: 8 }}>📄</div>
-            <h3 style={{ marginBottom: 6 }}>Upload Report</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-              Upload PDF for AI analysis
-            </p>
-            <button className="btn btn-primary" style={{ marginTop: 12, fontSize: '0.85rem' }}>
-              Upload →
-            </button>
-          </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6 fade-in">
+        <Link to="/upload" className="glass-card text-center hover:border-accent-blue/40 cursor-pointer group">
+          <div className="text-accent-blue text-sm font-semibold mb-1 group-hover:text-accent-blue/80 transition">Upload Report</div>
+          <p className="text-text-muted text-xs mb-3">Upload PDF for AI analysis</p>
+          <span className="inline-block px-4 py-1.5 rounded-lg bg-gradient-to-r from-accent-blue to-accent-purple text-white text-xs font-medium">
+            Upload
+          </span>
         </Link>
-        <Link to="/drug-interactions" style={{ textDecoration: 'none' }}>
-          <div className="glass-card" style={{ cursor: 'pointer', textAlign: 'center', padding: 32 }}>
-            <div style={{ fontSize: '2rem', marginBottom: 8 }}>💊</div>
-            <h3 style={{ marginBottom: 6 }}>Drug Checker</h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-              Check drug interactions
-            </p>
-            <button className="btn btn-secondary" style={{ marginTop: 12, fontSize: '0.85rem' }}>
-              Check →
-            </button>
-          </div>
+        <Link to="/drug-interactions" className="glass-card text-center hover:border-accent-purple/40 cursor-pointer group">
+          <div className="text-accent-purple text-sm font-semibold mb-1">Drug Checker</div>
+          <p className="text-text-muted text-xs mb-3">Check drug interactions</p>
+          <span className="inline-block px-4 py-1.5 rounded-lg border border-border-subtle text-text-secondary text-xs font-medium hover:bg-white/5">
+            Check
+          </span>
         </Link>
-        <div className="glass-card" style={{ textAlign: 'center', padding: 32 }}>
-          <div style={{ fontSize: '2rem', marginBottom: 8 }}>🧠</div>
-          <h3 style={{ marginBottom: 6 }}>Knowledge Graph</h3>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-            Medical relationship mapping
-          </p>
-          <div className="badge badge-info" style={{ marginTop: 12 }}>
+        <div className="glass-card text-center">
+          <div className="text-accent-teal text-sm font-semibold mb-1">Knowledge Graph</div>
+          <p className="text-text-muted text-xs mb-3">Medical relationship mapping</p>
+          <span className="inline-block px-3 py-1 rounded-lg bg-accent-blue/10 text-accent-blue text-xs">
             {a.knowledge_graph?.total_nodes ?? '100+'} nodes
-          </div>
+          </span>
         </div>
       </div>
 
-      {/* Recent Reports with PDF Download */}
+      {/* Recent Reports */}
       <div className="glass-card fade-in">
-        <div className="card-header">
-          <div className="card-icon" style={{ background: 'rgba(139, 92, 246, 0.15)' }}>📋</div>
-          <h3>Recent Reports</h3>
-        </div>
+        <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">Recent Reports</h3>
 
         {loading ? (
-          <div className="loading-overlay">
-            <div className="spinner"></div>
-            <p style={{ color: 'var(--text-muted)' }}>Loading reports...</p>
+          <div className="flex flex-col items-center py-12 gap-3">
+            <div className="spinner" />
+            <p className="text-text-muted text-sm">Loading reports...</p>
           </div>
         ) : error ? (
-          <div style={{ padding: 24, textAlign: 'center' }}>
-            <p style={{ color: 'var(--status-low)', marginBottom: 8 }}>⚠️ {error}</p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              Run <code style={{ color: 'var(--text-accent)' }}>uvicorn main:app --reload</code> in the backend directory
+          <div className="text-center py-6">
+            <p className="text-accent-orange text-sm mb-1">{error}</p>
+            <p className="text-text-muted text-xs">
+              Run <code className="text-accent-blue">uvicorn main:app --reload</code> in the backend directory
             </p>
           </div>
         ) : reports.length === 0 ? (
-          <div style={{ padding: 40, textAlign: 'center' }}>
-            <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', marginBottom: 12 }}>No reports yet</p>
+          <div className="text-center py-10">
+            <p className="text-text-muted mb-3">No reports yet</p>
             <Link to="/upload">
-              <button className="btn btn-primary">Upload Your First Report</button>
+              <button className="px-5 py-2 rounded-lg bg-gradient-to-r from-accent-blue to-accent-purple text-white text-sm font-medium hover:opacity-90 transition">
+                Upload Your First Report
+              </button>
             </Link>
           </div>
         ) : (
@@ -234,36 +204,32 @@ function Dashboard() {
             <tbody>
               {reports.map((report) => (
                 <tr key={report.id}>
-                  <td>{report.filename}</td>
+                  <td className="text-text-primary font-medium">{report.filename}</td>
                   <td>
-                    <span className="badge badge-info">
+                    <span className="px-2 py-0.5 rounded text-xs bg-accent-blue/15 text-accent-blue">
                       {(report.document_type || 'unknown').replace('_', ' ')}
                     </span>
                   </td>
                   <td>
-                    <span className={`badge badge-${report.status === 'completed' ? 'normal' : 'low'}`}>
+                    <span className={`px-2 py-0.5 rounded text-xs ${
+                      report.status === 'completed' ? 'bg-accent-green/15 text-accent-green' : 'bg-accent-orange/15 text-accent-orange'
+                    }`}>
                       {report.status}
                     </span>
                   </td>
-                  <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    {report.created_at ? new Date(report.created_at).toLocaleDateString() : '—'}
+                  <td className="text-text-muted text-sm">
+                    {report.created_at ? new Date(report.created_at).toLocaleDateString() : '-'}
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <div className="flex gap-2">
                       <Link to={`/report/${report.id}`}>
-                        <button className="btn btn-secondary" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
-                          View →
+                        <button className="px-3 py-1 rounded-md text-xs border border-border-subtle text-text-secondary hover:bg-white/5 transition">
+                          View
                         </button>
                       </Link>
                       <a href={getReportPdfUrl(report.id)} target="_blank" rel="noopener noreferrer">
-                        <button className="btn btn-secondary" style={{
-                          padding: '6px 12px',
-                          fontSize: '0.8rem',
-                          background: 'rgba(239,68,68,0.12)',
-                          color: '#ef4444',
-                          border: '1px solid rgba(239,68,68,0.3)',
-                        }}>
-                          📥 PDF
+                        <button className="px-3 py-1 rounded-md text-xs border border-accent-red/30 text-accent-red hover:bg-accent-red/10 transition">
+                          PDF
                         </button>
                       </a>
                     </div>

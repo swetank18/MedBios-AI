@@ -1,142 +1,100 @@
 import { useState } from 'react';
 
 function ClinicalInsights({ insights = [], evidenceChains = [], graphRisks = [], compact = false }) {
-  const [expandedInsight, setExpandedInsight] = useState(null);
+  const [expanded, setExpanded] = useState({});
 
-  const displayInsights = compact ? insights.slice(0, 3) : insights;
+  const toggle = (i) => setExpanded(prev => ({ ...prev, [i]: !prev[i] }));
+
+  const confStyles = {
+    high: 'bg-accent-red/15 text-accent-red',
+    medium: 'bg-accent-orange/15 text-accent-orange',
+    low: 'bg-accent-blue/15 text-accent-blue',
+  };
+
+  const displayInsights = compact ? insights.slice(0, 4) : insights;
 
   return (
     <div className="glass-card">
-      <div className="card-header">
-        <div className="card-icon" style={{ background: 'rgba(139, 92, 246, 0.15)' }}>🧠</div>
-        <h3>
-          Clinical Insights
-          {insights.length > 0 && (
-            <span style={{ marginLeft: 8, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              ({insights.length} findings)
-            </span>
-          )}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+          Clinical Insights {compact && `(${insights.length})`}
         </h3>
       </div>
 
-      {displayInsights.length === 0 ? (
-        <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 20 }}>
-          No clinical insights generated — all values may be within normal range.
-        </p>
-      ) : (
-        <div style={{ display: 'grid', gap: 12 }}>
-          {displayInsights.map((insight, i) => {
-            const chain = evidenceChains[i];
-            const isExpanded = expandedInsight === i;
+      <div className="space-y-3">
+        {displayInsights.map((insight, i) => {
+          const chain = evidenceChains.find(e => e.condition === insight.condition);
+          const isExpanded = expanded[i];
 
-            return (
-              <div
-                key={i}
-                className={`insight-card confidence-${insight.confidence}`}
-                onClick={() => setExpandedInsight(isExpanded ? null : i)}
+          return (
+            <div
+              key={i}
+              className="rounded-lg border border-border-subtle bg-white/[0.02] overflow-hidden"
+            >
+              <button
+                onClick={() => toggle(i)}
+                className="w-full flex items-start gap-3 p-3 text-left hover:bg-white/[0.02] transition"
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <h4>{insight.condition}</h4>
-                    <span className="insight-category">{insight.category}</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-medium text-text-primary">{insight.condition}</span>
+                    <span className={`px-1.5 py-0.5 rounded text-[0.6rem] font-bold ${confStyles[insight.confidence] || confStyles.low}`}>
+                      {insight.confidence?.toUpperCase()}
+                    </span>
+                    <span className="text-[0.65rem] text-text-muted">
+                      {insight.category}
+                    </span>
                   </div>
-                  <span className={`badge badge-${insight.confidence === 'high' ? 'critical' : insight.confidence === 'medium' ? 'high' : 'normal'}`}>
-                    {insight.confidence?.toUpperCase()}
-                  </span>
                 </div>
+                <span className="text-text-muted text-xs mt-0.5">{isExpanded ? '▲' : '▼'}</span>
+              </button>
 
-                {isExpanded && (
-                  <div className="insight-body">
-                    {/* Reasoning */}
-                    <div style={{ marginBottom: 12 }}>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        Reasoning
-                      </div>
-                      <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                        {insight.reasoning}
-                      </p>
+              {isExpanded && (
+                <div className="px-3 pb-3 space-y-2 border-t border-border-subtle pt-2">
+                  {insight.reasoning && (
+                    <div>
+                      <p className="text-[0.6rem] text-text-muted uppercase tracking-wider mb-0.5">Reasoning</p>
+                      <p className="text-sm text-text-secondary">{insight.reasoning}</p>
                     </div>
-
-                    {/* Evidence */}
-                    {insight.evidence && insight.evidence.length > 0 && (
-                      <div className="evidence-chain" style={{ marginBottom: 12 }}>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase' }}>
-                          Supporting Evidence
-                        </div>
-                        {insight.evidence.map((ev, j) => (
-                          <div key={j} className="evidence-step">
-                            <div className="step-number">{j + 1}</div>
-                            <div className="step-content">
-                              <div className="step-label">{ev.test}</div>
-                              <div className="step-value">
-                                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-                                  {ev.value}
-                                </span>
-                                {' '}— {ev.finding}
-                              </div>
-                            </div>
+                  )}
+                  {insight.recommendation && (
+                    <div>
+                      <p className="text-[0.6rem] text-text-muted uppercase tracking-wider mb-0.5">Recommendation</p>
+                      <p className="text-sm text-accent-green">{insight.recommendation}</p>
+                    </div>
+                  )}
+                  {chain && chain.evidence && (
+                    <div>
+                      <p className="text-[0.6rem] text-text-muted uppercase tracking-wider mb-1">Evidence Chain</p>
+                      <div className="space-y-1">
+                        {chain.evidence.map((ev, j) => (
+                          <div key={j} className="flex items-center gap-2 text-xs text-text-secondary">
+                            <span className="w-1 h-1 rounded-full bg-accent-blue shrink-0" />
+                            <span>{ev.test_name}: <strong className="text-text-primary">{ev.value} {ev.unit || ''}</strong> ({ev.status})</span>
                           </div>
                         ))}
                       </div>
-                    )}
-
-                    {/* Evidence Chain from Explainability */}
-                    {chain && chain.confidence_justification && (
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: 12 }}>
-                        💡 {chain.confidence_justification}
+                    </div>
+                  )}
+                  {/* Knowledge graph risks */}
+                  {graphRisks.filter(r => r.source === insight.condition).length > 0 && (
+                    <div>
+                      <p className="text-[0.6rem] text-text-muted uppercase tracking-wider mb-1">Downstream Risks</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {graphRisks.filter(r => r.source === insight.condition).map((risk, k) => (
+                          <span key={k} className="px-2 py-0.5 rounded text-xs bg-accent-red/10 text-accent-red">
+                            {risk.target}
+                          </span>
+                        ))}
                       </div>
-                    )}
-
-                    {/* Recommendation */}
-                    {insight.recommendation && (
-                      <div className="recommendation">
-                        <strong>📋 Recommended:</strong> {insight.recommendation}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {compact && insights.length > 3 && (
-        <div style={{ marginTop: 12, textAlign: 'center' }}>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
-            +{insights.length - 3} more insights — switch to Insights tab for details
-          </span>
-        </div>
-      )}
-
-      {/* Downstream Graph Risks */}
-      {!compact && graphRisks && graphRisks.length > 0 && (
-        <div style={{ marginTop: 24 }}>
-          <div className="card-header">
-            <div className="card-icon" style={{ background: 'rgba(236, 72, 153, 0.15)' }}>🕸️</div>
-            <h3>Knowledge Graph — Downstream Risks</h3>
-          </div>
-          <div style={{ display: 'grid', gap: 8 }}>
-            {graphRisks.map((risk, i) => (
-              <div key={i} style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: '10px 16px', background: 'var(--bg-glass)', borderRadius: 'var(--radius-sm)',
-                borderLeft: `3px solid ${risk.confidence === 'high' ? '#ef4444' : risk.confidence === 'medium' ? '#f59e0b' : '#22c55e'}`,
-              }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{risk.risk}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    Triggered by: {risk.triggered_by} ({risk.status}) • Chain: {risk.relationship_chain}
-                  </div>
+                    </div>
+                  )}
                 </div>
-                <span className={`badge badge-${risk.confidence === 'high' ? 'critical' : risk.confidence === 'medium' ? 'high' : 'normal'}`}>
-                  {risk.confidence}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

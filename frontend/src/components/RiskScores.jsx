@@ -1,63 +1,54 @@
 function RiskScores({ riskScores = {} }) {
-  const organSystems = riskScores.organ_systems || {};
+  const systems = riskScores.by_system || {};
+  const overall = riskScores.overall || 0;
+
+  const getRiskColor = (score) => {
+    if (score >= 70) return { bar: 'bg-accent-red', text: 'text-accent-red', label: 'HIGH' };
+    if (score >= 40) return { bar: 'bg-accent-orange', text: 'text-accent-orange', label: 'MODERATE' };
+    return { bar: 'bg-accent-green', text: 'text-accent-green', label: 'LOW' };
+  };
+
+  const overallRisk = getRiskColor(overall);
 
   return (
     <div className="glass-card">
-      <div className="card-header">
-        <div className="card-icon" style={{ background: 'rgba(239, 68, 68, 0.15)' }}>⚠️</div>
-        <h3>
-          Risk Assessment
-          {riskScores.overall != null && (
-            <span style={{
-              marginLeft: 8, fontSize: '0.85rem', fontWeight: 700,
-              color: riskScores.overall_level === 'critical' ? 'var(--status-critical)' :
-                     riskScores.overall_level === 'high' ? 'var(--status-high)' :
-                     riskScores.overall_level === 'moderate' ? 'var(--status-low)' : 'var(--status-normal)',
-            }}>
-              ({riskScores.overall}% — {riskScores.overall_level?.toUpperCase()})
-            </span>
-          )}
-        </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">Risk Assessment</h3>
+        <span className={`text-xs font-bold ${overallRisk.text}`}>{overall}% — {overallRisk.label}</span>
       </div>
 
-      {Object.keys(organSystems).length === 0 ? (
-        <p style={{ color: 'var(--text-muted)', textAlign: 'center', padding: 20 }}>
-          No significant risk factors detected ✅
-        </p>
-      ) : (
-        <div style={{ display: 'grid', gap: 16 }}>
-          {Object.entries(organSystems)
-            .sort(([,a], [,b]) => b.score - a.score)
-            .map(([system, data]) => (
-              <div key={system} className="risk-bar-container">
-                <div className="risk-bar-label">
-                  <span style={{ textTransform: 'capitalize', fontWeight: 500 }}>
-                    {system.replace('_', ' ')}
-                  </span>
-                  <span style={{
-                    fontFamily: 'var(--font-mono)', fontWeight: 600,
-                    color: data.level === 'critical' ? 'var(--status-critical)' :
-                           data.level === 'high' ? 'var(--status-high)' :
-                           data.level === 'moderate' ? 'var(--status-low)' : 'var(--status-normal)',
-                  }}>
-                    {data.score}% ({data.level})
-                  </span>
-                </div>
-                <div className="risk-bar-track">
-                  <div
-                    className={`risk-bar-fill ${data.level}`}
-                    style={{ width: `${Math.max(data.score, 3)}%` }}
-                  ></div>
-                </div>
-                {data.factors && data.factors.length > 0 && (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                    {data.factors.join(' • ')}
-                  </div>
-                )}
-              </div>
-            ))}
+      {/* Overall bar */}
+      <div className="mb-5">
+        <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+          <div
+            className={`h-full rounded-full ${overallRisk.bar} transition-all duration-1000`}
+            style={{ width: `${overall}%` }}
+          />
         </div>
-      )}
+      </div>
+
+      {/* Per-system */}
+      <div className="space-y-3">
+        {Object.entries(systems)
+          .sort((a, b) => b[1] - a[1])
+          .map(([system, score]) => {
+            const risk = getRiskColor(score);
+            return (
+              <div key={system}>
+                <div className="flex justify-between mb-1">
+                  <span className="text-sm text-text-secondary">{system}</span>
+                  <span className={`text-sm font-bold ${risk.text}`}>{score}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${risk.bar} transition-all duration-1000`}
+                    style={{ width: `${score}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+      </div>
     </div>
   );
 }
