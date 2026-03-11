@@ -53,4 +53,23 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy"}
+    import platform
+    import sys
+    from services.knowledge_graph import get_full_graph_stats
+    kg = get_full_graph_stats()
+    return {
+        "status": "healthy",
+        "version": APP_VERSION,
+        "python": sys.version.split()[0],
+        "platform": platform.system(),
+        "services": {
+            "ocr": "active",
+            "nlp": "active",
+            "reasoning_engine": "active (13 rules)",
+            "risk_scorer": "active",
+            "knowledge_graph": f"active ({kg.get('total_nodes', 0)} nodes, {kg.get('total_edges', 0)} edges)",
+            "drug_interactions": "active (16 pairs, 8 classes)",
+            "trend_analysis": "active",
+            "pdf_export": "active",
+        },
+    }

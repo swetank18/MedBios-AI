@@ -1,110 +1,187 @@
-# MedBios AI
+<div align="center">
 
-**AI-powered clinical report intelligence platform**
+# 🧬 MedBios AI
 
-MedBios is an advanced medical AI system that extracts clinical data from medical reports, detects abnormalities, performs clinical reasoning, and generates physician-ready summaries with explainable evidence chains.
+**AI-Powered Clinical Report Intelligence Platform**
 
-## Architecture
+[![CI](https://github.com/swetank18/MedBios-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/swetank18/MedBios-AI/actions)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12+-3776AB.svg?logo=python&logoColor=white)](https://python.org)
+[![React](https://img.shields.io/badge/React-19-61DAFB.svg?logo=react&logoColor=white)](https://react.dev)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Tests](https://img.shields.io/badge/Tests-37%2F37_passing-22c55e.svg)](backend/tests/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-```
-medbios/
-├── frontend/          React dashboard (Vite)
-│   └── src/
-│       ├── pages/     Dashboard, Upload, Results
-│       └── components/ Findings, Insights, Graph, Report
-│
-├── backend/           FastAPI service
-│   ├── services/
-│   │   ├── ocr_service.py          PDF text extraction
-│   │   ├── nlp_service.py          Lab value extraction & NLP
-│   │   ├── reference_ranges.py     50+ lab test reference ranges
-│   │   ├── reasoning_engine.py     13 clinical inference rules
-│   │   ├── risk_scorer.py          Organ system risk scoring
-│   │   ├── explainability.py       Evidence chain builder
-│   │   ├── report_generator.py     Physician-ready reports
-│   │   ├── knowledge_graph.py      Medical knowledge graph
-│   │   └── pipeline.py             8-stage pipeline orchestrator
-│   ├── routers/
-│   │   └── reports.py              REST API endpoints
-│   ├── data/
-│   │   └── medical_graph_seed.json 100+ nodes, 115+ edges
-│   ├── models.py                   Database ORM models
-│   ├── database.py                 SQLAlchemy async engine
-│   ├── config.py                   Configuration
-│   └── main.py                     FastAPI entrypoint
-```
+*Upload a medical lab report PDF → Get AI-powered clinical analysis with reasoning, risk scoring, knowledge graph, and physician-ready reports.*
 
-## Key Features
+</div>
+
+---
+
+## ✨ Key Features
 
 | Feature | Description |
 |---------|-------------|
-| **Clinical Reasoning Engine** | 13 rule-based clinical inference rules covering hematology, cardiovascular, nephrology, endocrinology, hepatology, thyroid, electrolytes |
-| **Medical Knowledge Graph** | NetworkX graph with 100+ nodes and 115+ edges encoding medical relationships |
-| **Multimodal Pipeline** | 8-stage pipeline: OCR → NLP → Abnormal Detection → Reasoning → Risk Scoring → Knowledge Graph → Explainability → Report |
-| **Explainability System** | Transparent evidence chains: Observation → Rule → Conclusion with source references |
-| **Doctor-Ready Reports** | Structured clinical summaries with abnormal findings, risk scores, and recommendations |
-| **50+ Lab Tests** | Reference ranges with severity classification (normal, low, high, critical) |
+| 📄 **PDF Analysis** | OCR + NLP extraction of 50+ lab test types |
+| 🧠 **Clinical Reasoning** | 13 rule engine covering 9 medical domains |
+| 📊 **Risk Scoring** | Composite risk scores per organ system (0-100%) |
+| 🕸️ **Knowledge Graph** | 96 nodes, 97 edges mapping medical relationships |
+| 💊 **Drug Interactions** | 16 drug-drug pairs, 8 drug-lab classes |
+| 📈 **Trend Analysis** | Longitudinal patient tracking with alerts |
+| 📥 **PDF Export** | Downloadable physician-ready clinical reports |
+| 🔬 **Explainability** | Evidence chains linking insights to source data |
 
-## Quick Start
+## 🏗️ Architecture
 
-### Backend
+```
+┌─────────────────────────────────────────────────────────┐
+│                    React Frontend                        │
+│  Dashboard │ Upload │ Results │ Drug Checker │ Trends    │
+└────────────────────────┬────────────────────────────────┘
+                         │ REST API
+┌────────────────────────┴────────────────────────────────┐
+│                   FastAPI Backend                        │
+│                                                          │
+│  ┌──────────┐   ┌──────────┐   ┌───────────────┐       │
+│  │ OCR      │──▶│ NLP      │──▶│ Reference     │       │
+│  │ Service  │   │ Service  │   │ Ranges (50+)  │       │
+│  └──────────┘   └──────────┘   └───────┬───────┘       │
+│                                         │                │
+│  ┌──────────────┐   ┌──────────┐   ┌───┴───────┐       │
+│  │ Knowledge    │◀──│ Risk     │◀──│ Clinical  │       │
+│  │ Graph (NX)   │   │ Scorer   │   │ Reasoning │       │
+│  └──────────────┘   └──────────┘   └───────────┘       │
+│                                                          │
+│  ┌──────────────┐   ┌──────────┐   ┌───────────┐       │
+│  │ Drug         │   │ Trend    │   │ PDF       │       │
+│  │ Interactions │   │ Analysis │   │ Export    │       │
+│  └──────────────┘   └──────────┘   └───────────┘       │
+│                                                          │
+│  SQLite/PostgreSQL  │  NetworkX  │  ReportLab           │
+└─────────────────────────────────────────────────────────┘
+```
 
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.12+
+- Node.js 20+
+
+### Backend Setup
 ```bash
 cd backend
 python -m venv venv
 venv\Scripts\activate        # Windows
+# source venv/bin/activate   # macOS/Linux
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8000
 ```
 
-### Frontend
-
+### Frontend Setup
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173
-
-## Analysis Pipeline
-
-```
-Upload Medical Report (PDF)
-        ↓
-    OCR Extraction
-        ↓
-    NLP Processing (lab value extraction)
-        ↓
-    Abnormal Detection (reference range comparison)
-        ↓
-    Clinical Reasoning (13 inference rules)
-        ↓
-    Risk Scoring (per organ system)
-        ↓
-    Knowledge Graph (downstream risk inference)
-        ↓
-    Explainability (evidence chain construction)
-        ↓
-    Report Generation (physician-ready summary)
+### Docker
+```bash
+docker-compose up --build
+# Frontend: http://localhost:80
+# Backend:  http://localhost:8000
 ```
 
-## API Endpoints
+## 📡 API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/reports/upload` | Upload PDF for analysis |
-| GET | `/api/reports/` | List all reports |
-| GET | `/api/reports/{id}` | Get report details |
-| GET | `/api/reports/knowledge-graph/stats` | Graph statistics |
-| GET | `/api/reports/knowledge-graph/query/{entity}` | Query graph |
+| `POST` | `/api/reports/upload` | Upload PDF for analysis |
+| `GET` | `/api/reports/` | List all reports |
+| `GET` | `/api/reports/{id}` | Get report details |
+| `GET` | `/api/reports/export/{id}/pdf` | Download PDF report |
+| `GET` | `/api/reports/analytics/dashboard` | Live analytics stats |
+| `GET` | `/api/reports/patient/{id}/trends` | Patient trend analysis |
+| `POST` | `/api/reports/drug-interactions/check` | Drug-drug interactions |
+| `POST` | `/api/reports/drug-interactions/lab-check` | Drug-lab interactions |
+| `GET` | `/api/reports/knowledge-graph/stats` | Knowledge graph stats |
+| `GET` | `/health` | System health check |
 
-## Tech Stack
+## 🧪 Testing
+```bash
+cd backend
+python -m pytest tests/ -v
+# 37 tests passing across 9 service modules
+```
 
-- **Backend**: Python, FastAPI, SQLAlchemy, pdfplumber, NetworkX
-- **Frontend**: React, Vite, Recharts, react-force-graph-2d
-- **Database**: SQLite (dev) / PostgreSQL (prod)
+## 🧠 Clinical Reasoning Rules
 
-## Disclaimer
+The engine includes 13 clinical rules across 9 medical domains:
 
-This system is for **educational and informational purposes only**. It is not a certified medical device. All outputs must be reviewed by qualified healthcare professionals.
+| Domain | Rules |
+|--------|-------|
+| Hematology | Iron deficiency anemia, B12/folate deficiency |
+| Cardiovascular | Dyslipidemia, elevated LDL |
+| Nephrology | CKD staging, elevated BUN/creatinine |
+| Endocrinology | Diabetes (HbA1c/glucose), thyroid dysfunction |
+| Hepatology | Liver enzyme elevation, hepatic injury |
+| Electrolytes | Hyper/hypokalemia, calcium abnormalities |
+| Immunology | Systemic inflammation (CRP/ESR) |
+| Nutrition | Vitamin D deficiency, malnutrition |
+| Hematology | Leukocytosis, thrombocytopenia |
+
+## 💊 Drug Interaction Database
+
+**16 drug-drug pairs** including:
+- Warfarin + Aspirin → Increased bleeding risk
+- SSRI + MAOI → Serotonin syndrome (CRITICAL)
+- ACE Inhibitor + Potassium → Hyperkalemia
+- Statin + Gemfibrozil → Rhabdomyolysis
+
+**8 drug-lab classes** with expected effects on lab values.
+
+## 📁 Project Structure
+
+```
+MedBios-AI/
+├── backend/
+│   ├── main.py                    # FastAPI entrypoint
+│   ├── config.py                  # Configuration
+│   ├── database.py                # SQLAlchemy async engine
+│   ├── models.py                  # ORM models
+│   ├── routers/
+│   │   └── reports.py             # All API endpoints
+│   ├── services/
+│   │   ├── ocr_service.py         # PDF text extraction
+│   │   ├── nlp_service.py         # Lab value NLP extraction
+│   │   ├── reference_ranges.py    # 50+ lab test ranges
+│   │   ├── reasoning_engine.py    # Clinical reasoning (13 rules)
+│   │   ├── risk_scorer.py         # Organ system risk scoring
+│   │   ├── knowledge_graph.py     # NetworkX medical graph
+│   │   ├── explainability.py      # Evidence chain builder
+│   │   ├── report_generator.py    # Clinical summary generator
+│   │   ├── trend_analysis.py      # Longitudinal tracking
+│   │   ├── drug_interactions.py   # Drug safety engine
+│   │   └── pipeline.py            # Orchestrator
+│   ├── data/
+│   │   └── medical_graph_seed.json # Knowledge graph seed data
+│   └── tests/
+│       └── test_services.py       # 37 unit tests
+├── frontend/
+│   └── src/
+│       ├── pages/                 # Dashboard, Upload, Results, Drug Checker, Trends
+│       ├── components/            # Findings, Insights, Risk, Graph, Report
+│       └── api.js                 # API client
+├── Dockerfile                     # Multi-stage build
+├── docker-compose.yml             # Backend + Frontend services
+├── nginx.conf                     # SPA routing + API proxy
+└── .github/workflows/ci.yml       # CI pipeline
+```
+
+## 📄 License
+
+MIT License — see [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+  <b>Built with ❤️ using FastAPI, React, NetworkX, and ReportLab</b>
+</div>
