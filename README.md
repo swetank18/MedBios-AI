@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🧬 MedBios AI
+# MedBios AI
 
 **AI-Powered Clinical Report Intelligence Platform**
 
@@ -11,26 +11,26 @@
 [![Tests](https://img.shields.io/badge/Tests-37%2F37_passing-22c55e.svg)](backend/tests/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-*Upload a medical lab report PDF → Get AI-powered clinical analysis with reasoning, risk scoring, knowledge graph, and physician-ready reports.*
+*Upload a medical lab report PDF and get AI-powered clinical analysis with reasoning, risk scoring, knowledge graph, and physician-ready reports.*
 
 </div>
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 | Feature | Description |
 |---------|-------------|
-| 📄 **PDF Analysis** | OCR + NLP extraction of 50+ lab test types |
-| 🧠 **Clinical Reasoning** | 13 rule engine covering 9 medical domains |
-| 📊 **Risk Scoring** | Composite risk scores per organ system (0-100%) |
-| 🕸️ **Knowledge Graph** | 96 nodes, 97 edges mapping medical relationships |
-| 💊 **Drug Interactions** | 16 drug-drug pairs, 8 drug-lab classes |
-| 📈 **Trend Analysis** | Longitudinal patient tracking with alerts |
-| 📥 **PDF Export** | Downloadable physician-ready clinical reports |
-| 🔬 **Explainability** | Evidence chains linking insights to source data |
+| **PDF Analysis** | OCR + NLP extraction of 50+ lab test types |
+| **Clinical Reasoning** | 13 rule engine covering 9 medical domains |
+| **Risk Scoring** | Composite risk scores per organ system (0-100%) |
+| **Knowledge Graph** | 96 nodes, 97 edges mapping medical relationships |
+| **Drug Interactions** | 16 drug-drug pairs, 8 drug-lab classes |
+| **Trend Analysis** | Longitudinal patient tracking with alerts |
+| **PDF Export** | Downloadable physician-ready clinical reports |
+| **Explainability** | Evidence chains linking insights to source data |
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -60,7 +60,7 @@
 └─────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Python 3.12+
@@ -90,7 +90,7 @@ docker-compose up --build
 # Backend:  http://localhost:8000
 ```
 
-## 📡 API Endpoints
+## API Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -105,14 +105,14 @@ docker-compose up --build
 | `GET` | `/api/reports/knowledge-graph/stats` | Knowledge graph stats |
 | `GET` | `/health` | System health check |
 
-## 🧪 Testing
+## Testing
 ```bash
 cd backend
 python -m pytest tests/ -v
 # 37 tests passing across 9 service modules
 ```
 
-## 🧠 Clinical Reasoning Rules
+## Clinical Reasoning Rules
 
 The engine includes 13 clinical rules across 9 medical domains:
 
@@ -128,7 +128,7 @@ The engine includes 13 clinical rules across 9 medical domains:
 | Nutrition | Vitamin D deficiency, malnutrition |
 | Hematology | Leukocytosis, thrombocytopenia |
 
-## 💊 Drug Interaction Database
+## Drug Interaction Database
 
 **16 drug-drug pairs** including:
 - Warfarin + Aspirin → Increased bleeding risk
@@ -138,7 +138,7 @@ The engine includes 13 clinical rules across 9 medical domains:
 
 **8 drug-lab classes** with expected effects on lab values.
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 MedBios-AI/
@@ -176,12 +176,6 @@ MedBios-AI/
 └── .github/workflows/ci.yml       # CI pipeline
 ```
 
-## 📄 License
+## License
 
 MIT License — see [LICENSE](LICENSE) for details.
-
----
-
-<div align="center">
-  <b>Built with ❤️ using FastAPI, React, NetworkX, and ReportLab</b>
-</div>
