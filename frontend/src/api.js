@@ -71,4 +71,9 @@ export const sendChatMessage = async (reportId, message) => {
   return response.data;
 };
 
+export const getRecommendations = async (reportId) => {
+  const response = await api.get(`/reports/${reportId}/recommendations`);
+  return response.data;
+};
+
 export default api;

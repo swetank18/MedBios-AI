@@ -607,3 +607,32 @@ async def chat_with_report(report_id: str, payload: ChatMessage, db: AsyncSessio
     await asyncio.sleep(1.5)
     
     return {"answer": answer}
+
+
+# ── Health Recommendations ──
+from services.recommendations import generate_recommendations
+
+@router.get("/{report_id}/recommendations")
+async def get_recommendations(report_id: str, db: AsyncSession = Depends(get_db)):
+    """Generate personalized health recommendations based on report lab values."""
+    report_result = await db.execute(select(Report).where(Report.id == report_id))
+    report = report_result.scalars().first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    lab_result = await db.execute(select(LabResult).where(LabResult.report_id == report_id))
+    lab_values = lab_result.scalars().all()
+
+    lab_dicts = [
+        {
+            "test_name": lr.test_name,
+            "value": lr.value,
+            "unit": lr.unit,
+            "status": lr.status,
+            "reference_min": lr.reference_min,
+            "reference_max": lr.reference_max,
+        }
+        for lr in lab_values
+    ]
+
+    return generate_recommendations(lab_dicts)

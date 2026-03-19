@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
-import { getReport, getReportPdfUrl } from '../api';
+import { getReport, getReportPdfUrl, getRecommendations } from '../api';
 import AbnormalFindings from '../components/AbnormalFindings';
 import ClinicalInsights from '../components/ClinicalInsights';
 import RiskScores from '../components/RiskScores';
@@ -14,6 +14,7 @@ import CriticalAlerts from '../components/CriticalAlerts';
 import BiomarkerHeatmap from '../components/BiomarkerHeatmap';
 import PatientSummaryCard from '../components/PatientSummaryCard';
 import SkeletonLoader from '../components/SkeletonLoader';
+import HealthRecommendations from '../components/HealthRecommendations';
 
 function ReportResults() {
   const { id } = useParams();
@@ -22,8 +23,21 @@ function ReportResults() {
   const [loading, setLoading] = useState(!data);
   const [activeTab, setActiveTab] = useState('overview');
   const [chatOpen, setChatOpen] = useState(false);
+  const [recommendations, setRecommendations] = useState(null);
+  const [recsLoading, setRecsLoading] = useState(false);
 
   useEffect(() => { if (!data && id) loadReport(); }, [id]);
+
+  // Lazy-load recommendations when tab is selected
+  useEffect(() => {
+    if (activeTab === 'rx' && !recommendations && !recsLoading && id) {
+      setRecsLoading(true);
+      getRecommendations(id)
+        .then(setRecommendations)
+        .catch(() => setRecommendations({ recommendations: [], summary: 'Failed to load recommendations.' }))
+        .finally(() => setRecsLoading(false));
+    }
+  }, [activeTab]);
 
   const loadReport = async () => {
     try {
@@ -83,6 +97,7 @@ function ReportResults() {
     { id: 'findings', label: `Findings (${labValues.length})` },
     { id: 'insights', label: `Insights (${insights.length})` },
     { id: 'graph', label: 'Graph' },
+    { id: 'rx', label: 'Recommendations' },
     { id: 'report', label: 'Report' },
   ];
 
@@ -179,6 +194,9 @@ function ReportResults() {
         {activeTab === 'findings' && <AbnormalFindings labValues={labValues} />}
         {activeTab === 'insights' && <ClinicalInsights insights={insights} evidenceChains={evidenceChains} graphRisks={graphRisks} />}
         {activeTab === 'graph' && <KnowledgeGraphViz graphData={graphData} graphRisks={graphRisks} />}
+        {activeTab === 'rx' && (
+          recsLoading ? <SkeletonLoader type="card" /> : <HealthRecommendations recommendations={recommendations} />
+        )}
         {activeTab === 'report' && <DoctorReport report={clinicalReport} patientInfo={data.patient_info} />}
       </div>
 
