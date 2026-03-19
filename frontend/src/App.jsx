@@ -5,7 +5,9 @@ import UploadReport from './pages/UploadReport';
 import ReportResults from './pages/ReportResults';
 import DrugInteractions from './pages/DrugInteractions';
 import TrendAnalysis from './pages/TrendAnalysis';
+import NotFound from './pages/NotFound';
 import { ToastProvider } from './components/ToastProvider';
+import Footer from './components/Footer';
 import './App.css';
 
 const NAV_LINKS = [
@@ -117,7 +119,9 @@ function App() {
             <Route path="/report/:id" element={<ReportResults />} />
             <Route path="/drug-interactions" element={<DrugInteractions />} />
             <Route path="/trends/:patientId" element={<TrendAnalysis />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
+          <Footer />
         </div>
       </ToastProvider>
     </Router>
