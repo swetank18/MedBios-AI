@@ -8,6 +8,9 @@ import KnowledgeGraphViz from '../components/KnowledgeGraphViz';
 import DoctorReport from '../components/DoctorReport';
 import OrganSystemVis from '../components/OrganSystemVis';
 import ReportChat from '../components/ReportChat';
+import HealthScoreRing from '../components/HealthScoreRing';
+import SystemRadarChart from '../components/SystemRadarChart';
+import CriticalAlerts from '../components/CriticalAlerts';
 
 function ReportResults() {
   const { id } = useParams();
@@ -33,9 +36,9 @@ function ReportResults() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="flex flex-col items-center py-20 gap-3">
+        <div className="flex flex-col items-center py-20 gap-4">
           <div className="spinner" />
-          <p className="text-text-muted">Loading report analysis...</p>
+          <p className="text-text-muted">Analyzing your medical report...</p>
         </div>
       </div>
     );
@@ -62,11 +65,12 @@ function ReportResults() {
   const evidenceChains = data.evidence_chains || [];
   const graphRisks = data.graph_risks || [];
   const abnormalCount = data.abnormal_count || labValues.filter(l => l.status !== 'normal').length;
+  const overallScore = riskScores.overall || 0;
 
   const tabs = [
     { id: 'overview', label: 'Overview' },
-    { id: 'findings', label: 'Findings' },
-    { id: 'insights', label: 'Insights' },
+    { id: 'findings', label: `Findings (${labValues.length})` },
+    { id: 'insights', label: `Insights (${insights.length})` },
     { id: 'graph', label: 'Graph' },
     { id: 'report', label: 'Report' },
   ];
@@ -76,13 +80,17 @@ function ReportResults() {
       {/* Header */}
       <div className="slide-up mb-6">
         <Link to="/" className="text-text-muted text-sm hover:text-text-secondary transition">← Dashboard</Link>
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-accent-blue to-accent-purple bg-clip-text text-transparent mt-2">
-          Analysis Results
-        </h1>
-        <div className="flex items-center justify-between mt-1">
-          <p className="text-text-secondary text-sm">{data.filename || 'Medical Report'} · {data.document_type?.replace('_', ' ') || 'Lab Report'}</p>
+        <div className="flex items-start justify-between mt-2 gap-4 flex-wrap">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-accent-blue to-accent-purple bg-clip-text text-transparent">
+              Analysis Results
+            </h1>
+            <p className="text-text-secondary text-sm mt-0.5">
+              {data.filename || 'Medical Report'} · {data.document_type?.replace('_', ' ') || 'Lab Report'}
+            </p>
+          </div>
           <a href={getReportPdfUrl(id)} target="_blank" rel="noopener noreferrer">
-            <button className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-accent-blue to-accent-purple text-white text-sm font-medium hover:opacity-90 transition flex items-center gap-1.5">
+            <button className="px-4 py-2 rounded-lg bg-gradient-to-r from-accent-blue to-accent-purple text-white text-sm font-medium hover:opacity-90 transition flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
               </svg>
@@ -92,13 +100,16 @@ function ReportResults() {
         </div>
       </div>
 
+      {/* Critical Alerts Banner */}
+      <CriticalAlerts labValues={labValues} insights={insights} />
+
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 fade-in">
         {[
           { value: labValues.length, label: 'Lab Values', color: 'text-accent-blue' },
           { value: abnormalCount, label: 'Abnormal', color: 'text-accent-orange' },
           { value: insights.length, label: 'Clinical Insights', color: 'text-accent-red' },
-          { value: `${riskScores.overall || 0}%`, label: 'Risk Score', color: 'text-accent-pink' },
+          { value: `${overallScore}%`, label: 'Risk Score', color: overallScore >= 70 ? 'text-accent-red' : overallScore >= 40 ? 'text-accent-orange' : 'text-accent-green' },
         ].map((stat, i) => (
           <div key={i} className="glass-card text-center !p-4">
             <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
@@ -108,7 +119,7 @@ function ReportResults() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-1 mb-6 overflow-x-auto">
+      <div className="flex gap-1 mb-6 overflow-x-auto pb-1">
         {tabs.map((tab) => (
           <button
             key={tab.id}
@@ -127,7 +138,18 @@ function ReportResults() {
       {/* Tab Content */}
       <div className="fade-in">
         {activeTab === 'overview' && (
-          <div className="grid gap-6">
+          <div className="space-y-6">
+            {/* Hero Row: Health Score Ring + Radar Chart */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="glass-card flex flex-col items-center justify-center py-6">
+                <HealthScoreRing score={overallScore} size={200} />
+              </div>
+              <div className="lg:col-span-2">
+                <SystemRadarChart riskScores={riskScores} />
+              </div>
+            </div>
+
+            {/* Findings + Organ Map Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -136,7 +158,7 @@ function ReportResults() {
                 </div>
                 <ClinicalInsights insights={insights} evidenceChains={evidenceChains} compact />
               </div>
-              <div className="lg:col-span-1 h-full min-h-[400px]">
+              <div className="min-h-[380px]">
                 <OrganSystemVis riskScores={riskScores} />
               </div>
             </div>
@@ -151,19 +173,21 @@ function ReportResults() {
       {/* AI Chat FAB */}
       <button
         onClick={() => setChatOpen(!chatOpen)}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-accent-blue to-accent-purple text-white shadow-lg shadow-accent-blue/20 flex items-center justify-center hover:scale-105 transition-transform z-50 focus:outline-none"
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-accent-blue to-accent-purple text-white shadow-lg shadow-accent-blue/30 flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-50 focus:outline-none"
       >
         {chatOpen ? (
-          <span className="text-2xl leading-none -mt-1">&times;</span>
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
         ) : (
-          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
           </svg>
         )}
       </button>
 
       {/* AI Chat Panel */}
-      <div className={`fixed bottom-24 right-6 w-[350px] shadow-2xl shadow-black/50 z-50 transition-all duration-300 origin-bottom-right ${chatOpen ? 'scale-100 opacity-100' : 'scale-90 opacity-0 pointer-events-none'}`}>
+      <div className={`fixed bottom-24 right-6 w-[360px] shadow-2xl shadow-black/60 z-50 transition-all duration-300 origin-bottom-right ${chatOpen ? 'scale-100 opacity-100' : 'scale-90 opacity-0 pointer-events-none'}`}>
         <ReportChat reportId={id} />
       </div>
     </div>
