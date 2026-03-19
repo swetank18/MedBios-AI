@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { checkDrugInteractions } from '../api';
+import { useToast } from '../components/ToastProvider';
 
 const SEVERITY_STYLES = {
   critical: { bg: 'bg-accent-red/10', border: 'border-accent-red/40', text: 'text-accent-red', badge: 'bg-accent-red text-white' },
@@ -21,6 +22,7 @@ function DrugInteractions() {
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const { addToast } = useToast();
 
   const addMed = (med) => {
     const normalized = med.trim().toLowerCase();
@@ -33,14 +35,18 @@ function DrugInteractions() {
   const removeMed = (index) => setMedications(prev => prev.filter((_, i) => i !== index));
 
   const handleCheck = async () => {
-    if (medications.length < 2) { setError('Add at least 2 medications'); return; }
+    if (medications.length < 2) { setError('Add at least 2 medications'); addToast('Add at least 2 medications', 'warning'); return; }
     setLoading(true);
     setError(null);
     try {
       const data = await checkDrugInteractions(medications);
       setResults(data);
+      const count = data.drug_interactions?.length || 0;
+      if (count > 0) addToast(`Found ${count} drug interaction(s)!`, 'warning');
+      else addToast('No interactions found', 'success');
     } catch {
-      setError('Failed to check interactions. Is the backend running?');
+      setError('Failed to check interactions.');
+      addToast('Connection error — is the backend running?', 'error');
     } finally {
       setLoading(false);
     }
@@ -52,7 +58,7 @@ function DrugInteractions() {
   }, 'low') || 'low';
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-8">
+    <div className="max-w-4xl mx-auto px-6 py-8 page-enter">
       <div className="slide-up mb-8">
         <h1 className="text-3xl font-bold bg-gradient-to-r from-accent-blue to-accent-purple bg-clip-text text-transparent">
           Drug Interaction Checker

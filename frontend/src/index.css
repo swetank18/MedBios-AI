@@ -130,3 +130,9 @@ body {
 .glass-card:hover {
   border-color: rgba(14, 165, 233, 0.15);
 }
+
+/* Toast slide-in */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
