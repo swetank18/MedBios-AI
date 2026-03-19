@@ -564,3 +564,46 @@ async def export_report_pdf(report_id: str, db: AsyncSession = Depends(get_db)):
         media_type="application/pdf",
         headers={"Content-Disposition": f"attachment; filename={filename}"},
     )
+
+import asyncio
+from pydantic import BaseModel
+
+class ChatMessage(BaseModel):
+    message: str
+
+@router.post("/{report_id}/chat")
+async def chat_with_report(report_id: str, payload: ChatMessage, db: AsyncSession = Depends(get_db)):
+    """Simulate a context-aware AI chat response based on the report."""
+    report_result = await db.execute(select(Report).where(Report.id == report_id))
+    report = report_result.scalars().first()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    
+    msg = payload.message.lower()
+    
+    # Generic fallback
+    answer = ("I'm your MedBios AI assistant. I've analyzed your report. "
+              "Based on the findings, it's recommended to consult your physician for a detailed diagnosis.")
+    
+    # Simple keyword-based contextual reasoning
+    if "glucose" in msg or "sugar" in msg or "diabetes" in msg:
+        answer = ("Your report indicates abnormal glucose levels. High fasting glucose is a key indicator "
+                  "of impaired glucose tolerance. I recommend discussing dietary changes and potentially "
+                  "an HbA1c test with your doctor.")
+    elif "diet" in msg or "food" in msg or "eat" in msg:
+        answer = ("Given your clinical profile, a heart-healthy diet low in refined carbohydrates and "
+                  "saturated fats is generally recommended. Please refer to the specific recommendations in the 'Report' tab.")
+    elif "risk" in msg or "danger" in msg or "bad" in msg:
+        overall_risk = report.risk_scores.get('overall', 'unknown') if report.risk_scores else 'unknown'
+        answer = (f"Your overall calculated risk score is {overall_risk}%. High-risk areas are highlighted "
+                  "in red on your Organ System map. Identifying risks early is the best way to prevent complications.")
+    elif "cholesterol" in msg or "lipid" in msg or "heart" in msg:
+        answer = ("Lipid profile results (like LDL cholesterol) are part of your cardiovascular risk assessment. "
+                  "If LDL is high, cardiovascular risk increases. Regular exercise is often a first line of defense.")
+    elif "hello" in msg or "hi" in msg:
+        answer = "Hello! How can I help you understand your medical report today?"
+
+    # Simulate reasoning/LLM generation delay
+    await asyncio.sleep(1.5)
+    
+    return {"answer": answer}

@@ -66,4 +66,9 @@ export const getReportPdfUrl = (reportId) => {
   return `${API_BASE}/api/reports/export/${reportId}/pdf`;
 };
 
+export const sendChatMessage = async (reportId, message) => {
+  const response = await api.post(`/reports/${reportId}/chat`, { message });
+  return response.data;
+};
+
 export default api;

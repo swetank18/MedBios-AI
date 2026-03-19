@@ -6,6 +6,8 @@ import ClinicalInsights from '../components/ClinicalInsights';
 import RiskScores from '../components/RiskScores';
 import KnowledgeGraphViz from '../components/KnowledgeGraphViz';
 import DoctorReport from '../components/DoctorReport';
+import OrganSystemVis from '../components/OrganSystemVis';
+import ReportChat from '../components/ReportChat';
 
 function ReportResults() {
   const { id } = useParams();
@@ -13,6 +15,7 @@ function ReportResults() {
   const [data, setData] = useState(location.state?.analysisData || null);
   const [loading, setLoading] = useState(!data);
   const [activeTab, setActiveTab] = useState('overview');
+  const [chatOpen, setChatOpen] = useState(false);
 
   useEffect(() => { if (!data && id) loadReport(); }, [id]);
 
@@ -125,17 +128,43 @@ function ReportResults() {
       <div className="fade-in">
         {activeTab === 'overview' && (
           <div className="grid gap-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <AbnormalFindings labValues={labValues} compact />
-              <RiskScores riskScores={riskScores} />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <AbnormalFindings labValues={labValues} compact />
+                  <RiskScores riskScores={riskScores} />
+                </div>
+                <ClinicalInsights insights={insights} evidenceChains={evidenceChains} compact />
+              </div>
+              <div className="lg:col-span-1 h-full min-h-[400px]">
+                <OrganSystemVis riskScores={riskScores} />
+              </div>
             </div>
-            <ClinicalInsights insights={insights} evidenceChains={evidenceChains} compact />
           </div>
         )}
         {activeTab === 'findings' && <AbnormalFindings labValues={labValues} />}
         {activeTab === 'insights' && <ClinicalInsights insights={insights} evidenceChains={evidenceChains} graphRisks={graphRisks} />}
         {activeTab === 'graph' && <KnowledgeGraphViz graphData={graphData} graphRisks={graphRisks} />}
         {activeTab === 'report' && <DoctorReport report={clinicalReport} patientInfo={data.patient_info} />}
+      </div>
+
+      {/* AI Chat FAB */}
+      <button
+        onClick={() => setChatOpen(!chatOpen)}
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-gradient-to-r from-accent-blue to-accent-purple text-white shadow-lg shadow-accent-blue/20 flex items-center justify-center hover:scale-105 transition-transform z-50 focus:outline-none"
+      >
+        {chatOpen ? (
+          <span className="text-2xl leading-none -mt-1">&times;</span>
+        ) : (
+          <svg className="w-7 h-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+          </svg>
+        )}
+      </button>
+
+      {/* AI Chat Panel */}
+      <div className={`fixed bottom-24 right-6 w-[350px] shadow-2xl shadow-black/50 z-50 transition-all duration-300 origin-bottom-right ${chatOpen ? 'scale-100 opacity-100' : 'scale-90 opacity-0 pointer-events-none'}`}>
+        <ReportChat reportId={id} />
       </div>
     </div>
   );
