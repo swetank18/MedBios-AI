@@ -177,7 +177,7 @@ function Dashboard() {
             Diseases · Lab Tests · Symptoms · Medications
           </div>
           <div className="flex flex-wrap gap-2">
-            {['13 Clinical Rules', '50+ Lab Tests', '16+ Drug Pairs', 'Explainable AI'].map((badge, i) => (
+            {['13 Clinical Rules', '100+ Lab Tests', '130+ Aliases', '16+ Drug Pairs', 'Explainable AI'].map((badge, i) => (
               <span key={i} className="px-2.5 py-1 rounded-full border border-accent-blue/25 text-accent-blue text-xs">{badge}</span>
             ))}
           </div>
