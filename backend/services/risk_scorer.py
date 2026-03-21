@@ -100,20 +100,58 @@ def compute_risk_scores(lab_values: list[dict], insights: list[dict]) -> dict:
 def _lab_to_system(canonical_name: str) -> str | None:
     """Map a lab test to its organ system."""
     mapping = {
+        # Hematological
         "hemoglobin": "hematological", "hematocrit": "hematological",
         "rbc": "hematological", "wbc": "hematological", "platelets": "hematological",
-        "mcv": "hematological", "mch": "hematological",
+        "mcv": "hematological", "mch": "hematological", "mchc": "hematological",
+        "rdw": "hematological", "mpv": "hematological", "reticulocytes": "hematological",
+        "neutrophils": "hematological", "lymphocytes": "hematological",
+        "monocytes": "hematological", "eosinophils": "hematological", "basophils": "hematological",
+        "neutrophils_abs": "hematological", "lymphocytes_abs": "hematological",
+        "ferritin": "hematological", "iron": "hematological",
+        "tibc": "hematological", "transferrin_saturation": "hematological",
+        # Coagulation
+        "pt": "hematological", "inr": "hematological", "aptt": "hematological",
+        "fibrinogen": "hematological", "d_dimer": "hematological",
+        # Cardiovascular
         "ldl": "cardiovascular", "hdl": "cardiovascular",
         "total_cholesterol": "cardiovascular", "triglycerides": "cardiovascular",
+        "vldl": "cardiovascular", "non_hdl_cholesterol": "cardiovascular",
+        "ldl_hdl_ratio": "cardiovascular", "total_chol_hdl_ratio": "cardiovascular",
+        "troponin_i": "cardiovascular", "bnp": "cardiovascular", "nt_probnp": "cardiovascular",
+        "ck": "cardiovascular", "ck_mb": "cardiovascular",
+        "homocysteine": "cardiovascular", "lp_a": "cardiovascular",
+        # Renal
         "creatinine": "renal", "bun": "renal", "egfr": "renal",
+        "bun_creatinine_ratio": "renal", "cystatin_c": "renal",
+        "uric_acid": "renal", "urine_ph": "renal",
+        "urine_specific_gravity": "renal", "urine_protein": "renal", "microalbumin": "renal",
+        # Metabolic/Endocrine
         "glucose": "metabolic", "fasting_glucose": "metabolic", "hba1c": "metabolic",
-        "alt": "hepatic", "ast": "hepatic", "alp": "hepatic",
-        "bilirubin_total": "hepatic", "albumin": "hepatic",
+        "insulin": "metabolic",
         "tsh": "metabolic", "t3": "metabolic", "t4": "metabolic",
+        "free_t3": "metabolic", "free_t4": "metabolic", "anti_tpo": "metabolic",
+        "cortisol_am": "metabolic", "testosterone": "metabolic",
+        "estradiol": "metabolic", "pth": "metabolic",
+        # Hepatic
+        "alt": "hepatic", "ast": "hepatic", "alp": "hepatic", "ggt": "hepatic",
+        "bilirubin_total": "hepatic", "bilirubin_direct": "hepatic",
+        "albumin": "hepatic", "total_protein": "hepatic",
+        "ldh": "hepatic", "globulin": "hepatic", "ag_ratio": "hepatic",
+        # Electrolytes
         "sodium": "electrolyte", "potassium": "electrolyte", "calcium": "electrolyte",
-        "crp": "inflammatory", "esr": "inflammatory",
-        "ferritin": "hematological", "iron": "hematological",
-        "vitamin_d": "nutritional", "vitamin_b12": "nutritional",
+        "chloride": "electrolyte", "co2": "electrolyte",
+        "magnesium": "electrolyte", "phosphorus": "electrolyte", "ionized_calcium": "electrolyte",
+        # Inflammatory
+        "crp": "inflammatory", "hs_crp": "inflammatory", "esr": "inflammatory",
+        "procalcitonin": "inflammatory", "interleukin_6": "inflammatory",
+        # Nutritional
+        "vitamin_d": "nutritional", "vitamin_b12": "nutritional", "folate": "nutritional",
+        "vitamin_a": "nutritional", "zinc": "nutritional", "selenium": "nutritional",
+        # Gastrointestinal
+        "amylase": "gastrointestinal", "lipase": "gastrointestinal",
+        # Urological
+        "psa": "urological",
     }
     return mapping.get(canonical_name)
 

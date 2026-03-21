@@ -658,6 +658,217 @@ def rule_platelet_abnormalities(labs: dict) -> Optional[dict]:
     return None
 
 
+# ── METABOLIC SYNDROME ─────────────────────────────────────────────────────
+
+def rule_metabolic_syndrome(labs: dict) -> Optional[dict]:
+    """Detect metabolic syndrome (3+ criteria)."""
+    criteria_met = []
+    glucose = _get_val(labs, "glucose") or _get_val(labs, "fasting_glucose")
+    tg = _get_val(labs, "triglycerides")
+    hdl = _get_val(labs, "hdl")
+    hba1c = _get_val(labs, "hba1c")
+
+    if glucose is not None and glucose >= 100:
+        criteria_met.append({"test": "Glucose", "value": glucose, "finding": "≥100 mg/dL"})
+    if hba1c is not None and hba1c >= 5.7:
+        criteria_met.append({"test": "HbA1c", "value": hba1c, "finding": "≥5.7%"})
+    if tg is not None and tg >= 150:
+        criteria_met.append({"test": "Triglycerides", "value": tg, "finding": "≥150 mg/dL"})
+    if hdl is not None and hdl < 40:
+        criteria_met.append({"test": "HDL", "value": hdl, "finding": "<40 mg/dL"})
+
+    if len(criteria_met) >= 2:
+        return {
+            "condition": "Metabolic Syndrome Risk",
+            "confidence": "high" if len(criteria_met) >= 3 else "medium",
+            "category": "Endocrinology",
+            "evidence": criteria_met,
+            "reasoning": (
+                f"{len(criteria_met)} metabolic syndrome components detected. "
+                "Metabolic syndrome significantly increases risk of cardiovascular disease "
+                "and type 2 diabetes. Requires aggressive lifestyle intervention."
+            ),
+            "recommendation": "Comprehensive metabolic assessment, weight management, exercise program, dietary counseling",
+        }
+    return None
+
+
+# ── CARDIAC MARKERS ────────────────────────────────────────────────────────
+
+def rule_cardiac_markers(labs: dict) -> Optional[list]:
+    """Detect elevated cardiac markers."""
+    results = []
+    troponin = _get_val(labs, "troponin_i")
+    bnp = _get_val(labs, "bnp") or _get_val(labs, "nt_probnp")
+    ck_mb = _get_val(labs, "ck_mb")
+    homocysteine = _get_val(labs, "homocysteine")
+
+    if troponin is not None and troponin > 0.04:
+        results.append({
+            "condition": "Elevated Troponin — Myocardial Injury",
+            "confidence": "high",
+            "category": "Cardiovascular",
+            "evidence": [{"test": "Troponin I", "value": troponin, "finding": "Elevated (>0.04 ng/mL)"}],
+            "reasoning": (
+                "Elevated troponin indicates myocardial cell damage. In the appropriate "
+                "clinical context, this may suggest acute coronary syndrome, myocarditis, "
+                "PE, or other causes of myocardial injury."
+            ),
+            "recommendation": "URGENT: Serial troponins, 12-lead ECG, cardiology consultation",
+        })
+
+    if bnp is not None and bnp > 100:
+        results.append({
+            "condition": "Elevated BNP — Heart Failure Indicator",
+            "confidence": "high" if bnp > 400 else "medium",
+            "category": "Cardiovascular",
+            "evidence": [{"test": "BNP", "value": bnp, "finding": "Elevated (>100 pg/mL)"}],
+            "reasoning": (
+                "Elevated BNP/NT-proBNP is a biomarker for cardiac wall stress and "
+                "heart failure. Higher values correlate with worse cardiac function."
+            ),
+            "recommendation": "Echocardiogram, cardiology evaluation, assess volume status",
+        })
+
+    if homocysteine is not None and homocysteine > 15:
+        results.append({
+            "condition": "Hyperhomocysteinemia",
+            "confidence": "medium",
+            "category": "Cardiovascular",
+            "evidence": [{"test": "Homocysteine", "value": homocysteine, "finding": "Elevated (>15 umol/L)"}],
+            "reasoning": "Elevated homocysteine is an independent risk factor for cardiovascular disease and thrombosis.",
+            "recommendation": "B12, B6, folate supplementation, recheck in 6 weeks",
+        })
+
+    return results if results else None
+
+
+# ── COAGULATION ────────────────────────────────────────────────────────────
+
+def rule_coagulation(labs: dict) -> Optional[list]:
+    """Detect coagulation abnormalities."""
+    results = []
+    inr = _get_val(labs, "inr")
+    pt = _get_val(labs, "pt")
+    aptt = _get_val(labs, "aptt")
+    d_dimer = _get_val(labs, "d_dimer")
+    fibrinogen = _get_val(labs, "fibrinogen")
+
+    if inr is not None and inr > 1.2:
+        results.append({
+            "condition": "Elevated INR — Coagulopathy",
+            "confidence": "high" if inr > 3 else "medium",
+            "category": "Hematology",
+            "evidence": [{"test": "INR", "value": inr, "finding": f"Elevated (>1.2)"}],
+            "reasoning": (
+                "Elevated INR indicates prolonged clotting time. May be due to "
+                "anticoagulant therapy, liver disease, or coagulation factor deficiency."
+            ),
+            "recommendation": "Review anticoagulant medications, liver function tests, factor assays if unexplained",
+        })
+
+    if d_dimer is not None and d_dimer > 0.5:
+        results.append({
+            "condition": "Elevated D-Dimer",
+            "confidence": "medium",
+            "category": "Hematology",
+            "evidence": [{"test": "D-Dimer", "value": d_dimer, "finding": "Elevated (>0.5 mg/L)"}],
+            "reasoning": (
+                "Elevated D-dimer indicates fibrin degradation and active clot "
+                "formation/breakdown. While non-specific, it is useful for ruling out DVT/PE."
+            ),
+            "recommendation": "Clinical assessment for thromboembolism, consider ultrasound or CT angiography",
+        })
+
+    if fibrinogen is not None and fibrinogen < 200:
+        results.append({
+            "condition": "Low Fibrinogen — Bleeding Risk",
+            "confidence": "high" if fibrinogen < 100 else "medium",
+            "category": "Hematology",
+            "evidence": [{"test": "Fibrinogen", "value": fibrinogen, "finding": "Low (<200 mg/dL)"}],
+            "reasoning": "Low fibrinogen increases bleeding risk and may indicate DIC, liver disease, or consumptive coagulopathy.",
+            "recommendation": "Assess for DIC (check platelets, PT, D-dimer), liver function evaluation",
+        })
+
+    return results if results else None
+
+
+# ── PANCREATIC ────────────────────────────────────────────────────────────
+
+def rule_pancreatic(labs: dict) -> Optional[dict]:
+    """Detect pancreatic injury."""
+    amylase = _get_val(labs, "amylase")
+    lipase = _get_val(labs, "lipase")
+
+    if lipase is not None and lipase > 60:
+        evidence = [{"test": "Lipase", "value": lipase, "finding": "Elevated (>60 U/L)"}]
+        if amylase is not None and amylase > 100:
+            evidence.append({"test": "Amylase", "value": amylase, "finding": "Elevated (>100 U/L)"})
+        return {
+            "condition": "Elevated Pancreatic Enzymes — Possible Pancreatitis",
+            "confidence": "high" if lipase > 180 else "medium",
+            "category": "Gastrointestinal",
+            "evidence": evidence,
+            "reasoning": (
+                "Elevated lipase (and/or amylase) suggests pancreatic injury. "
+                "Lipase is more specific for pancreatitis. Three-fold elevation is highly suggestive."
+            ),
+            "recommendation": "Abdominal imaging (CT/US), NPO if acute, surgical consultation if severe",
+        }
+    return None
+
+
+# ── MAGNESIUM/PHOSPHORUS ──────────────────────────────────────────────────
+
+def rule_magnesium_phosphorus(labs: dict) -> Optional[list]:
+    """Detect magnesium and phosphorus abnormalities."""
+    results = []
+    mg = _get_val(labs, "magnesium")
+    phos = _get_val(labs, "phosphorus")
+
+    if mg is not None and mg < 1.7:
+        results.append({
+            "condition": "Hypomagnesemia",
+            "confidence": "high" if mg < 1.0 else "medium",
+            "category": "Electrolytes",
+            "evidence": [{"test": "Magnesium", "value": mg, "finding": "Low (<1.7 mg/dL)"}],
+            "reasoning": "Low magnesium can cause arrhythmias, muscle cramps, and worsen hypokalemia/hypocalcemia.",
+            "recommendation": "Magnesium supplementation, assess diuretic use and GI losses",
+        })
+
+    if phos is not None and phos < 2.5:
+        results.append({
+            "condition": "Hypophosphatemia",
+            "confidence": "medium",
+            "category": "Electrolytes",
+            "evidence": [{"test": "Phosphorus", "value": phos, "finding": "Low (<2.5 mg/dL)"}],
+            "reasoning": "Low phosphorus can cause muscle weakness, respiratory failure in severe cases.",
+            "recommendation": "Phosphorus supplementation, assess nutritional status and renal function",
+        })
+
+    return results if results else None
+
+
+# ── PSA SCREENING ──────────────────────────────────────────────────────────
+
+def rule_psa_screening(labs: dict) -> Optional[dict]:
+    """Screen for elevated PSA."""
+    psa = _get_val(labs, "psa")
+    if psa is not None and psa > 4.0:
+        return {
+            "condition": "Elevated PSA — Prostate Evaluation Needed",
+            "confidence": "high" if psa > 10 else "medium",
+            "category": "Urology",
+            "evidence": [{"test": "PSA", "value": psa, "finding": "Elevated (>4.0 ng/mL)"}],
+            "reasoning": (
+                "Elevated PSA may indicate prostate cancer, benign prostatic hyperplasia, "
+                "or prostatitis. Further evaluation is needed."
+            ),
+            "recommendation": "Urology referral, digital rectal exam, consider prostate MRI/biopsy",
+        }
+    return None
+
+
 # ── Register all rules ─────────────────────────────────────────────────────
 
 ALL_RULES = [
@@ -674,6 +885,13 @@ ALL_RULES = [
     rule_vitamin_deficiencies,
     rule_wbc_abnormalities,
     rule_platelet_abnormalities,
+    # V11 — new rules
+    rule_metabolic_syndrome,
+    rule_cardiac_markers,
+    rule_coagulation,
+    rule_pancreatic,
+    rule_magnesium_phosphorus,
+    rule_psa_screening,
 ]
 
 
