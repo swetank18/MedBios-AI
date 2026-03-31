@@ -61,6 +61,13 @@ def generate_clinical_summary(analysis: dict) -> dict:
                 "related_to": insight["condition"],
             })
 
+    # ── Confidence breakdown ──
+    confidence_breakdown = {"high": 0, "medium": 0, "low": 0}
+    for insight in insights:
+        conf = insight.get("confidence", "low")
+        if conf in confidence_breakdown:
+            confidence_breakdown[conf] += 1
+
     # ── Build report ──
     report = {
         "title": "Patient Report Analysis",
@@ -84,6 +91,7 @@ def generate_clinical_summary(analysis: dict) -> dict:
             "insights_generated": len(insights),
             "overall_risk": risk_scores.get("overall", 0),
             "overall_risk_level": risk_scores.get("overall_level", "minimal"),
+            "confidence_breakdown": confidence_breakdown,
         },
         "abnormal_findings": abnormal_findings,
         "clinical_concerns": clinical_concerns,
@@ -100,6 +108,13 @@ def generate_clinical_summary(analysis: dict) -> dict:
             }
             for lab in lab_values
         ],
+        "analysis_metadata": {
+            "engine_version": "2.0.0",
+            "clinical_rules": 20,
+            "drug_interaction_pairs": 30,
+            "recommendation_conditions": 18,
+            "lab_reference_ranges": "100+",
+        },
     }
 
     return report

@@ -42,6 +42,9 @@ def compute_risk_scores(lab_values: list[dict], insights: list[dict]) -> dict:
         "Immunology": "inflammatory",
         "Nutrition": "nutritional",
         "Rheumatology": "inflammatory",
+        "Gastroenterology": "gastrointestinal",
+        "Pulmonology": "respiratory",
+        "Urology": "urological",
     }
 
     for insight in insights:

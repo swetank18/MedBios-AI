@@ -223,6 +223,110 @@ RECOMMENDATIONS_DB = {
             "urgency": "moderate",
         },
     },
+    # Sodium
+    "sodium": {
+        "high": {
+            "condition": "Hypernatremia (Elevated Sodium)",
+            "diet": [
+                "Increase fluid intake — aim for 2.5-3.5 liters of water daily",
+                "Reduce sodium-rich foods: processed meats, canned soups, salty snacks, soy sauce",
+                "Use herbs and spices instead of salt for seasoning",
+                "Increase potassium-rich foods: bananas, sweet potatoes, spinach (counterbalances sodium)",
+            ],
+            "exercise": ["Hydrate well before, during, and after exercise", "Avoid exercising in extreme heat without proper hydration"],
+            "supplements": ["Electrolyte solutions without added sodium", "Potassium (if levels are low — check with doctor first)"],
+            "followup": ["Repeat sodium level in 1-2 weeks", "Assess hydration status and kidney function", "Review medications: diuretics, corticosteroids"],
+            "urgency": "moderate",
+        },
+        "low": {
+            "condition": "Hyponatremia (Low Sodium)",
+            "diet": [
+                "Moderate fluid restriction if drinking excessive water (>3L/day)",
+                "Ensure adequate sodium intake from natural sources: broths, pickles, salted nuts",
+                "Avoid excessive consumption of plain water without electrolytes during exercise",
+            ],
+            "exercise": ["Use electrolyte drinks (not just water) during prolonged exercise", "Avoid marathon-distance events until resolved"],
+            "supplements": ["Electrolyte supplements during intense activity", "Avoid excessive supplementation that dilutes sodium"],
+            "followup": ["Repeat sodium in 1-2 weeks", "Check thyroid and adrenal function", "URGENT if sodium <125: seek immediate medical evaluation"],
+            "urgency": "high",
+        },
+    },
+    # Uric Acid
+    "uric_acid": {
+        "high": {
+            "condition": "Hyperuricemia (Elevated Uric Acid / Gout Risk)",
+            "diet": [
+                "Reduce purine-rich foods: organ meats, shellfish, red meat, beer, and spirits",
+                "Increase intake of cherries, strawberries, and vitamin C-rich foods (may lower uric acid)",
+                "Stay very well hydrated: 3+ liters of water daily to flush uric acid",
+                "Limit fructose: avoid high-fructose corn syrup, sugary sodas, and excessive fruit juices",
+                "Low-fat dairy products may help lower uric acid levels",
+            ],
+            "exercise": ["Regular moderate exercise — avoid intense bursts that can spike uric acid", "Maintain healthy weight: obesity increases uric acid production"],
+            "supplements": ["Vitamin C (500-1000 mg/day may lower uric acid by 10-15%)", "Cherry extract (1000 mg/day)", "Avoid aspirin which can increase uric acid retention"],
+            "followup": ["Repeat uric acid in 4-6 weeks", "Joint assessment if experiencing pain or swelling", "Kidney function tests (uric acid can form kidney stones)"],
+            "urgency": "moderate",
+        },
+    },
+    # AST (Liver with muscle damage context)
+    "ast": {
+        "high": {
+            "condition": "Elevated AST (Liver/Muscle Enzyme)",
+            "diet": [
+                "Same liver-protective diet as ALT: eliminate alcohol, reduce saturated fats",
+                "Note: AST elevation can also indicate muscle damage — consider recent strenuous exercise",
+                "Coffee (2-3 cups/day) has proven liver-protective effects",
+                "Increase antioxidant-rich foods: berries, green tea, cruciferous vegetables",
+            ],
+            "exercise": ["Light exercise only until AST normalizes — intense exercise elevates AST", "If AST is elevated from exercise (not liver), moderate activity is fine"],
+            "supplements": ["Milk thistle (silymarin 140 mg 3x/day)", "NAC (600 mg/day)", "CoQ10 (100-200 mg/day) if related to statin use"],
+            "followup": ["Repeat AST + ALT in 4-6 weeks", "If AST > ALT by 2x: evaluate for alcoholic liver disease or muscle injury", "Check CK level to differentiate liver vs muscle source"],
+            "urgency": "moderate",
+        },
+    },
+    # Vitamin B12
+    "vitamin b12": {
+        "low": {
+            "condition": "Vitamin B12 Deficiency",
+            "diet": [
+                "Animal-source foods: liver, clams, sardines, beef, eggs, dairy",
+                "Fortified foods for vegetarians: nutritional yeast, fortified cereals, plant milks",
+                "Note: B12 is ONLY found naturally in animal products — vegans must supplement",
+            ],
+            "exercise": ["Fatigue may limit exercise capacity — start gently and build up", "B12 deficiency can cause neurological symptoms affecting balance"],
+            "supplements": ["Cyanocobalamin or Methylcobalamin (1000-2000 mcg/day sublingual)", "If absorption issues: B12 injections (1000 mcg IM weekly x4, then monthly)", "Folate (400 mcg/day) — often co-deficient with B12"],
+            "followup": ["Recheck B12 in 8-12 weeks after supplementation", "Methylmalonic acid (MMA) for functional B12 status", "Check for pernicious anemia (intrinsic factor antibodies)", "Neurological exam if tingling/numbness present"],
+            "urgency": "moderate",
+        },
+    },
+    # Calcium
+    "calcium": {
+        "low": {
+            "condition": "Hypocalcemia (Low Calcium)",
+            "diet": [
+                "Dairy products: milk, yogurt, cheese (best bioavailable calcium sources)",
+                "Non-dairy: fortified orange juice, tofu (calcium-set), sardines with bones",
+                "Leafy greens: kale, bok choy, broccoli (but NOT spinach — oxalates block absorption)",
+                "Avoid excessive caffeine and sodas which increase calcium excretion",
+            ],
+            "exercise": ["Weight-bearing exercise helps bones retain calcium: walking, jogging, dancing", "Resistance training 2-3x/week for bone density"],
+            "supplements": ["Calcium citrate (500-600 mg, 2x/day — better absorbed than carbonate)", "Vitamin D3 (2000-4000 IU/day — essential for calcium absorption)", "Vitamin K2 (100-200 mcg/day — directs calcium to bones)"],
+            "followup": ["Repeat calcium + albumin in 4-6 weeks", "Check PTH level (parathyroid function)", "Vitamin D level", "DEXA bone density scan if persistently low"],
+            "urgency": "moderate",
+        },
+        "high": {
+            "condition": "Hypercalcemia (Elevated Calcium)",
+            "diet": [
+                "Increase fluid intake: 3+ liters/day to help kidneys clear excess calcium",
+                "Reduce calcium-rich supplement intake temporarily",
+                "Limit vitamin D supplements until evaluated by physician",
+            ],
+            "exercise": ["Stay active — immobilization worsens hypercalcemia by leaching calcium from bones"],
+            "supplements": ["STOP calcium and vitamin D supplements until medical evaluation"],
+            "followup": ["URGENT: Repeat calcium + PTH immediately", "If calcium >12 mg/dL: seek prompt medical evaluation", "Evaluate for hyperparathyroidism, malignancy, or granulomatous disease"],
+            "urgency": "high",
+        },
+    },
 }
 
 
