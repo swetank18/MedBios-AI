@@ -310,6 +310,51 @@ class TestDrugInteractions:
         assert result["total"] == 1
         assert "hyperkalemia" in result["interactions"][0]["effect"].lower()
 
+    # ── V13 Expansion Tests ──
+
+    def test_sildenafil_nitrate_critical(self):
+        """PDE5 inhibitor + nitrate = CRITICAL contraindication"""
+        result = detect_drug_interactions(["sildenafil", "nitroglycerin"])
+        assert result["total"] == 1
+        assert result["interactions"][0]["severity"] == "critical"
+        assert "hypotension" in result["interactions"][0]["effect"].lower()
+
+    def test_macrolide_statin_via_alias(self):
+        """Clarithromycin (macrolide) + atorvastatin (statin) = rhabdomyolysis risk"""
+        result = detect_drug_interactions(["clarithromycin", "atorvastatin"])
+        assert result["total"] == 1
+        assert result["interactions"][0]["severity"] == "high"
+
+    def test_tramadol_ssri_serotonin(self):
+        """Tramadol + SSRI = serotonin syndrome risk"""
+        result = detect_drug_interactions(["tramadol", "sertraline"])
+        assert result["total"] == 1
+        assert "serotonin" in result["interactions"][0]["effect"].lower()
+
+    def test_metronidazole_alcohol(self):
+        """Metronidazole + alcohol = disulfiram-like reaction"""
+        result = detect_drug_interactions(["metronidazole", "alcohol"])
+        assert result["total"] == 1
+        assert "disulfiram" in result["interactions"][0]["effect"].lower()
+
+    def test_new_alias_loop_diuretic(self):
+        """Furosemide should map to loop diuretic"""
+        assert normalize_drug_name("furosemide") == "loop diuretic"
+
+    def test_new_alias_potassium_sparing(self):
+        """Spironolactone should map to potassium sparing diuretic"""
+        assert normalize_drug_name("spironolactone") == "potassium sparing diuretic"
+
+    def test_multi_drug_interactions(self):
+        """Multiple drugs can trigger multiple interactions"""
+        result = detect_drug_interactions([
+            "warfarin", "aspirin", "fluoxetine", "tramadol", "ibuprofen"
+        ])
+        # warfarin+aspirin, warfarin+ibuprofen, ssri+nsaid, tramadol+ssri
+        assert result["total"] >= 3
+        severities = [i["severity"] for i in result["interactions"]]
+        assert "high" in severities
+
 
 # ═══════════════════════════════════════════════════════════════
 # Explainability Tests
