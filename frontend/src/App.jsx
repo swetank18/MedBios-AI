@@ -12,6 +12,7 @@ import Settings from './pages/Settings';
 import { ToastProvider } from './components/ToastProvider';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import Footer from './components/Footer';
+import { useKeyboardShortcuts } from './components/useKeyboardShortcuts';
 import './App.css';
 
 const NAV_LINKS = [
@@ -30,6 +31,9 @@ function AppContent() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { isAuthenticated, user, logout } = useAuth();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  // Activate keyboard shortcuts
+  useKeyboardShortcuts();
 
   // If on login page, render without shell
   if (!isAuthenticated) {

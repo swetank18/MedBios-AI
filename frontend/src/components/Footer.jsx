@@ -28,6 +28,7 @@ function Footer() {
                 { to: '/', label: 'Dashboard' },
                 { to: '/upload', label: 'Upload Report' },
                 { to: '/drug-interactions', label: 'Drug Checker' },
+                { to: '/settings', label: 'Settings' },
               ].map(link => (
                 <li key={link.to}>
                   <Link to={link.to} className="text-text-muted text-sm hover:text-accent-blue transition">{link.label}</Link>
@@ -41,7 +42,8 @@ function Footer() {
             <h4 className="text-xs font-bold text-text-secondary uppercase tracking-wider mb-3">Capabilities</h4>
             <ul className="space-y-2 text-text-muted text-sm">
               <li>100+ Lab Test References</li>
-              <li>Clinical Reasoning Engine</li>
+              <li>20 Clinical Reasoning Rules</li>
+              <li>30 Drug Interaction Pairs</li>
               <li>Knowledge Graph Analysis</li>
               <li>Smart Health Recommendations</li>
             </ul>
