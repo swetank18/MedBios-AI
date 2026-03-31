@@ -7,7 +7,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check localStorage for existing session
     const saved = localStorage.getItem('medbios_user');
     if (saved) {
       try { setUser(JSON.parse(saved)); } catch {}
@@ -17,7 +16,6 @@ export function AuthProvider({ children }) {
 
   const login = (email, password) => {
     // In production, this would call the backend API
-    // For now, accept any email/password and create a session
     const userData = {
       email,
       name: email.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
@@ -30,13 +28,30 @@ export function AuthProvider({ children }) {
     return { success: true };
   };
 
+  const signup = (name, email, password, role) => {
+    // In production, this would POST to backend registration endpoint
+    // For now, create user directly and log them in
+    const initials = name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+    const userData = {
+      email,
+      name,
+      initials,
+      role: role || 'Physician',
+      loginTime: new Date().toISOString(),
+      registeredAt: new Date().toISOString(),
+    };
+    setUser(userData);
+    localStorage.setItem('medbios_user', JSON.stringify(userData));
+    return { success: true };
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('medbios_user');
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

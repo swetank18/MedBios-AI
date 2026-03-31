@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../components/AuthContext';
 
 function Login() {
@@ -135,6 +136,14 @@ function Login() {
               ))}
             </div>
           </div>
+
+          {/* Sign up link */}
+          <p className="text-center text-sm text-text-muted mt-5 pt-4 border-t border-border-subtle">
+            Don't have an account?{' '}
+            <Link to="/signup" className="text-accent-purple font-semibold hover:text-accent-purple/80 transition">
+              Create Account
+            </Link>
+          </p>
         </div>
 
         {/* Footer */}

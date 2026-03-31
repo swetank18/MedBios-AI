@@ -7,6 +7,7 @@ import DrugInteractions from './pages/DrugInteractions';
 import TrendAnalysis from './pages/TrendAnalysis';
 import NotFound from './pages/NotFound';
 import Login from './pages/Login';
+import Signup from './pages/Signup';
 import { ToastProvider } from './components/ToastProvider';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import Footer from './components/Footer';
@@ -34,6 +35,7 @@ function AppContent() {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
