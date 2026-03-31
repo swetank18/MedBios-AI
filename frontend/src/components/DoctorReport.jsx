@@ -158,9 +158,9 @@ function DoctorReport({ report = {}, patientInfo = {} }) {
           <div className="flex gap-2 text-[0.6rem] text-text-muted">
             <span>100+ Lab Tests</span>
             <span>•</span>
-            <span>13 Clinical Rules</span>
+            <span>20 Clinical Rules</span>
             <span>•</span>
-            <span>15+ Rx Databases</span>
+            <span>30 Drug Interactions</span>
           </div>
         </div>
         <p className="text-[0.6rem] text-text-muted leading-relaxed">
