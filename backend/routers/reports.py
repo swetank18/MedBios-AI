@@ -286,7 +286,7 @@ async def patient_trends(patient_id: str, db: AsyncSession = Depends(get_db)):
     if not reports:
         raise HTTPException(status_code=404, detail="No reports found for this patient")
 
-    # Build report data with lab values
+    # Build report data with lab values (include reference ranges for frontend charts)
     reports_data = []
     for report in reports:
         lab_query = select(LabResult).where(LabResult.report_id == report.id)
@@ -294,17 +294,55 @@ async def patient_trends(patient_id: str, db: AsyncSession = Depends(get_db)):
 
         reports_data.append({
             "created_at": report.created_at.isoformat() if report.created_at else None,
+            "report_id": report.id,
             "lab_values": [
                 {
                     "test_name": lr.test_name,
                     "value": lr.value,
                     "status": lr.status,
+                    "reference_min": lr.reference_min,
+                    "reference_max": lr.reference_max,
+                    "unit": lr.unit,
                 }
                 for lr in lab_results
             ],
         })
 
-    return get_patient_trends(reports_data)
+    raw = get_patient_trends(reports_data)
+
+    # Reshape trends dict → lab_trends array expected by the frontend,
+    # and attach reference range from any data point that has it.
+    trends_dict = raw.get("trends", {})
+    lab_trends = []
+    for test_name, trend in trends_dict.items():
+        # Pull reference range from data points (first point that has it)
+        ref_min = ref_max = unit = None
+        for report in reports_data:
+            for lv in report.get("lab_values", []):
+                if lv["test_name"] == test_name and lv.get("reference_min") is not None:
+                    ref_min = lv["reference_min"]
+                    ref_max = lv["reference_max"]
+                    unit = lv.get("unit")
+                    break
+            if ref_min is not None:
+                break
+
+        lab_trends.append({
+            **trend,
+            "reference_min": ref_min,
+            "reference_max": ref_max,
+            "unit": unit,
+        })
+
+    # Sort: alerts first, then by num_readings desc
+    lab_trends.sort(key=lambda t: (-int(t.get("alert", False)), -t.get("num_readings", 0)))
+
+    return {
+        **raw,
+        "lab_trends": lab_trends,
+        "patient_id": patient_id,
+        "report_count": len(reports),
+    }
 
 
 # ── Drug Interaction Detection ──────────────────────────────

@@ -311,7 +311,7 @@ function Dashboard() {
                     {report.created_at ? new Date(report.created_at).toLocaleDateString() : '-'}
                   </td>
                   <td>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       <Link to={`/report/${report.id}`}>
                         <button className="px-3 py-1 rounded-md text-xs bg-accent-blue/10 border border-accent-blue/25 text-accent-blue hover:bg-accent-blue/20 transition">
                           View
@@ -322,6 +322,13 @@ function Dashboard() {
                           PDF
                         </button>
                       </a>
+                      {report.patient_id && (
+                        <Link to={`/trends/${report.patient_id}`}>
+                          <button className="px-3 py-1 rounded-md text-xs bg-accent-green/10 border border-accent-green/25 text-accent-green hover:bg-accent-green/20 transition">
+                            Trends
+                          </button>
+                        </Link>
+                      )}
                     </div>
                   </td>
                 </tr>
