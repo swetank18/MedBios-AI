@@ -80,6 +80,35 @@ export const openPipelineSocket = (reportId) => {
   return new WebSocket(`${getWsBase()}/ws/pipeline/${reportId}`);
 };
 
+/**
+ * Upload multiple PDF files as a batch.
+ * Returns { batch_id, reports: [{ report_id, filename, status }] }
+ */
+export const uploadBatch = async (files, patientInfo = {}, onUploadProgress) => {
+  const formData = new FormData();
+  files.forEach((f) => formData.append('files', f));
+  if (patientInfo.name) formData.append('patient_name', patientInfo.name);
+  if (patientInfo.age) formData.append('patient_age', String(patientInfo.age));
+  if (patientInfo.gender) formData.append('patient_gender', patientInfo.gender);
+  const response = await api.post('/reports/batch-upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: (e) => {
+      if (onUploadProgress && e.total) {
+        onUploadProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    },
+  });
+  return response.data;
+};
+
+/**
+ * Open a WebSocket to /ws/batch/{batchId} for concurrent batch pipeline streaming.
+ * Returns the WebSocket instance; caller attaches .onmessage / .onerror.
+ */
+export const openBatchSocket = (batchId) => {
+  return new WebSocket(`${getWsBase()}/ws/batch/${batchId}`);
+};
+
 export const listReports = async (page = 1, pageSize = 20) => {
   const response = await api.get(`/reports/?page=${page}&page_size=${pageSize}`);
   return response.data;

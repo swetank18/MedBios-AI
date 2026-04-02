@@ -5,10 +5,12 @@ Handles report upload, analysis, and retrieval.
 import logging
 import io
 import json
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Query
+import uuid
+from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Query, Form
 from fastapi.responses import StreamingResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from typing import Optional, List
 
 from fastapi import Request
 from database import get_db
@@ -19,6 +21,9 @@ from services.audit import log_action
 # In-memory store: report_id -> (file_bytes, filename)
 # Consumed once by the WebSocket pipeline endpoint then cleared.
 _pending_uploads: dict[str, tuple[bytes, str]] = {}
+
+# In-memory batch registry: batch_id -> list of report_ids
+_batches: dict[str, list[str]] = {}
 from services.knowledge_graph import get_full_graph_stats, get_subgraph, query_related
 from services.trend_analysis import get_patient_trends
 from services.drug_interactions import run_full_interaction_check
@@ -944,3 +949,127 @@ async def get_recommendations(report_id: str, db: AsyncSession = Depends(get_db)
     ]
 
     return generate_recommendations(lab_dicts)
+
+
+# ── Batch Upload ─────────────────────────────────────────────
+
+@router.post("/batch-upload")
+async def batch_upload_reports(
+    request: Request,
+    files: List[UploadFile] = File(...),
+    patient_name: Optional[str] = Form(None),
+    patient_age: Optional[int] = Form(None),
+    patient_gender: Optional[str] = Form(None),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Upload multiple PDF reports in one request.
+
+    Creates a pending Report record for each file immediately and returns a
+    batch_id that can be used to open the batch WebSocket for concurrent processing.
+    """
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided.")
+    if len(files) > 20:
+        raise HTTPException(status_code=400, detail="Maximum 20 files per batch.")
+
+    allowed_types = [
+        "application/pdf",
+        "image/png", "image/jpeg", "image/jpg",
+        "application/octet-stream",
+    ]
+
+    batch_id = str(uuid.uuid4())
+    report_entries = []
+
+    for file in files:
+        if file.content_type not in allowed_types and not file.filename.lower().endswith(".pdf"):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type for {file.filename}: {file.content_type}",
+            )
+
+        file_bytes = await file.read()
+        if len(file_bytes) == 0:
+            raise HTTPException(status_code=400, detail=f"Empty file: {file.filename}")
+        if len(file_bytes) > 50 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail=f"File too large (max 50MB): {file.filename}")
+
+        try:
+            patient = Patient(
+                name=patient_name,
+                age=patient_age,
+                gender=patient_gender,
+            )
+            db.add(patient)
+            await db.flush()
+
+            report = Report(
+                patient_id=patient.id,
+                filename=file.filename,
+                document_type="unknown",
+                raw_text=None,
+                status="pending",
+                analysis_result=None,
+            )
+            db.add(report)
+            await db.flush()
+            await db.commit()
+        except Exception as e:
+            logger.error(f"Failed to create pending record for {file.filename}: {e}")
+            await db.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to initialise record for {file.filename}")
+
+        _pending_uploads[report.id] = (file_bytes, file.filename)
+        report_entries.append({"report_id": report.id, "filename": file.filename, "status": "pending"})
+
+    _batches[batch_id] = [e["report_id"] for e in report_entries]
+
+    await log_action(
+        db,
+        action="report.batch_upload",
+        resource_type="report",
+        request=request,
+        detail={"batch_id": batch_id, "file_count": len(files)},
+    )
+
+    return {"batch_id": batch_id, "reports": report_entries}
+
+
+@router.get("/batch/{batch_id}/status")
+async def batch_status(batch_id: str, db: AsyncSession = Depends(get_db)):
+    """Get the processing status of all reports in a batch."""
+    report_ids = _batches.get(batch_id)
+    if report_ids is None:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    reports_info = []
+    completed = 0
+    failed = 0
+    pending = 0
+
+    for report_id in report_ids:
+        result = await db.execute(select(Report).where(Report.id == report_id))
+        report = result.scalar_one_or_none()
+        if report:
+            status = report.status
+            if status == "completed":
+                completed += 1
+            elif status == "error":
+                failed += 1
+            else:
+                pending += 1
+            reports_info.append({
+                "report_id": report.id,
+                "filename": report.filename,
+                "status": status,
+            })
+
+    return {
+        "batch_id": batch_id,
+        "total": len(report_ids),
+        "completed": completed,
+        "failed": failed,
+        "pending": pending,
+        "reports": reports_info,
+    }
