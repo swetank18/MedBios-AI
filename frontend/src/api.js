@@ -163,4 +163,13 @@ export const getRecommendations = async (reportId) => {
   return response.data;
 };
 
+export const shareReport = (reportId, mode, expiresInDays) =>
+  api.post(`/reports/${reportId}/share`, { mode, expires_in_days: expiresInDays });
+
+export const getSharedReport = (token) =>
+  api.get(`/reports/shared/${token}`);
+
+export const revokeShare = (reportId) =>
+  api.delete(`/reports/${reportId}/share`);
+
 export default api;

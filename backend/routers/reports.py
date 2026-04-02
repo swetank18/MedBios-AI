@@ -1073,3 +1073,189 @@ async def batch_status(batch_id: str, db: AsyncSession = Depends(get_db)):
         "pending": pending,
         "reports": reports_info,
     }
+
+
+# ── Shareable Report Links ───────────────────────────────────────────────────
+
+import secrets
+from datetime import datetime, timedelta, timezone
+from pydantic import BaseModel
+
+
+def _utcnow():
+    return datetime.now(timezone.utc)
+
+
+class ShareRequest(BaseModel):
+    mode: str = "link"
+    expires_in_days: int = 7
+
+
+@router.post("/{report_id}/share")
+async def share_report(
+    report_id: str,
+    body: ShareRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a shareable link token for the given report."""
+    query = select(Report).where(Report.id == report_id)
+    result = await db.execute(query)
+    report = result.scalar_one_or_none()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    token = secrets.token_urlsafe(32)
+    expires_at = _utcnow() + timedelta(days=body.expires_in_days)
+
+    report.share_token = token
+    report.share_expires_at = expires_at
+    report.share_mode = body.mode
+    await db.commit()
+
+    await log_action(
+        db,
+        action="report.share",
+        resource_type="report",
+        resource_id=report_id,
+        request=request,
+        detail={"mode": body.mode, "expires_in_days": body.expires_in_days},
+    )
+
+    return {
+        "share_token": token,
+        "share_url": f"/shared/{token}",
+        "expires_at": expires_at.isoformat(),
+    }
+
+
+@router.get("/shared/{token}")
+async def get_shared_report(token: str, request: Request, db: AsyncSession = Depends(get_db)):
+    """Public endpoint — returns full report data for a valid, non-expired share token."""
+    query = select(Report).where(Report.share_token == token)
+    result = await db.execute(query)
+    report = result.scalar_one_or_none()
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Shared report not found")
+
+    if report.share_expires_at and report.share_expires_at < _utcnow():
+        raise HTTPException(status_code=410, detail="This shared link has expired")
+
+    # Increment view counter
+    report.share_views = (report.share_views or 0) + 1
+    await db.commit()
+
+    report_id = report.id
+
+    # Reuse the same response shape as GET /{report_id}
+    lab_query = select(LabResult).where(LabResult.report_id == report_id)
+    lab_results = (await db.execute(lab_query)).scalars().all()
+
+    insight_query = select(ClinicalInsight).where(ClinicalInsight.report_id == report_id)
+    insights = (await db.execute(insight_query)).scalars().all()
+
+    patient = None
+    if report.patient_id:
+        patient_query = select(Patient).where(Patient.id == report.patient_id)
+        patient = (await db.execute(patient_query)).scalar_one_or_none()
+
+    lab_values = [
+        {
+            "test_name": lr.test_name,
+            "canonical_name": lr.test_name,
+            "value": lr.value,
+            "unit": lr.unit,
+            "status": lr.status,
+            "reference_min": lr.reference_min,
+            "reference_max": lr.reference_max,
+        }
+        for lr in lab_results
+    ]
+
+    abnormal_count = sum(1 for lv in lab_values if lv["status"] != "normal")
+    clinical_report = report.analysis_result or {}
+    risk_scores_data = clinical_report.get("risk_scores", {})
+    risk_scores = {
+        "overall": clinical_report.get("summary", {}).get("overall_risk", 0),
+        "overall_level": "high" if clinical_report.get("summary", {}).get("overall_risk", 0) > 60 else "moderate",
+        "organ_systems": risk_scores_data,
+    }
+
+    test_names = [lr.test_name for lr in lab_results if lr.status != "normal"]
+    kg_data = None
+    try:
+        if test_names:
+            kg_data = get_subgraph(test_names[:10], depth=2)
+    except Exception:
+        pass
+
+    insights_list = [
+        {
+            "condition": ins.condition,
+            "confidence": ins.confidence,
+            "category": ins.category,
+            "evidence": ins.evidence,
+            "reasoning": ins.reasoning,
+            "recommendation": ins.recommendation,
+        }
+        for ins in insights
+    ]
+
+    await log_action(
+        db,
+        action="report.shared_view",
+        resource_type="report",
+        resource_id=report_id,
+        request=request,
+    )
+
+    return {
+        "id": report.id,
+        "filename": report.filename,
+        "document_type": report.document_type,
+        "status": report.status,
+        "created_at": report.created_at.isoformat() if report.created_at else None,
+        "patient_info": {
+            "name": patient.name if patient else None,
+            "age": patient.age if patient else None,
+            "gender": patient.gender if patient else None,
+        },
+        "clinical_report": clinical_report,
+        "lab_values": lab_values,
+        "abnormal_count": abnormal_count,
+        "insights": insights_list,
+        "risk_scores": risk_scores,
+        "knowledge_graph": kg_data,
+        "graph_risks": [],
+        "share_views": report.share_views,
+    }
+
+
+@router.delete("/{report_id}/share")
+async def revoke_share(
+    report_id: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Revoke the share link for a report."""
+    query = select(Report).where(Report.id == report_id)
+    result = await db.execute(query)
+    report = result.scalar_one_or_none()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    report.share_token = None
+    report.share_expires_at = None
+    report.share_mode = "private"
+    await db.commit()
+
+    await log_action(
+        db,
+        action="report.share_revoke",
+        resource_type="report",
+        resource_id=report_id,
+        request=request,
+    )
+
+    return {"revoked": True}

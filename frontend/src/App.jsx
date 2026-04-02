@@ -9,6 +9,7 @@ import NotFound from './pages/NotFound';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Settings from './pages/Settings';
+import SharedReport from './pages/SharedReport';
 import { ToastProvider } from './components/ToastProvider';
 import { AuthProvider, useAuth } from './components/AuthContext';
 import { LanguageProvider, useLanguage } from './components/LanguageContext';
@@ -48,6 +49,7 @@ function AppContent() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/shared/:token" element={<SharedReport />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -237,6 +239,7 @@ function AppContent() {
           <Route path="/drug-interactions" element={<ProtectedRoute><DrugInteractions /></ProtectedRoute>} />
           <Route path="/trends/:patientId" element={<ProtectedRoute><TrendAnalysis /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          <Route path="/shared/:token" element={<SharedReport />} />
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

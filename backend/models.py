@@ -54,6 +54,12 @@ class Report(Base):
     # Full analysis result as JSON
     analysis_result: Mapped[dict] = mapped_column(JSON, nullable=True)
 
+    # Shareable link fields
+    share_token: Mapped[str] = mapped_column(String(64), unique=True, nullable=True, index=True)
+    share_expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
+    share_mode: Mapped[str] = mapped_column(String(20), default="private")  # "private" | "public" | "link"
+    share_views: Mapped[int] = mapped_column(Integer, default=0)
+
     # Encrypted sensitive fields — stored as Fernet ciphertext.
     # Existing plain-text rows can be migrated with a one-time script:
     #   for r in session.query(Report).all():

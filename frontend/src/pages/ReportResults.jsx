@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
-import { getReport, getReportPdfUrl, getRecommendations } from '../api';
+import { getReport, getReportPdfUrl, getRecommendations, shareReport, revokeShare } from '../api';
 import AbnormalFindings from '../components/AbnormalFindings';
 import ClinicalInsights from '../components/ClinicalInsights';
 import RiskScores from '../components/RiskScores';
@@ -27,6 +27,10 @@ function ReportResults() {
   const [chatOpen, setChatOpen] = useState(false);
   const [recommendations, setRecommendations] = useState(null);
   const [recsLoading, setRecsLoading] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareData, setShareData] = useState(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => { if (!data && id) loadReport(); }, [id]);
 
@@ -50,6 +54,38 @@ function ReportResults() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleShare = async () => {
+    if (shareData) { setShareOpen(true); return; }
+    setShareLoading(true);
+    try {
+      const res = await shareReport(id, 'link', 7);
+      setShareData(res.data);
+      setShareOpen(true);
+    } catch {
+      // silently ignore
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const handleRevoke = async () => {
+    try {
+      await revokeShare(id);
+      setShareData(null);
+      setShareOpen(false);
+    } catch {
+      // silently ignore
+    }
+  };
+
+  const handleCopy = () => {
+    const url = shareData ? window.location.origin + shareData.share_url : '';
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
   };
 
   const handleExportFhir = async () => {
@@ -132,6 +168,16 @@ function ReportResults() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleShare}
+              disabled={shareLoading}
+              className="px-4 py-2.5 rounded-xl border border-border-subtle text-text-secondary text-sm font-medium hover:bg-bg-secondary transition flex items-center gap-2 disabled:opacity-60"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+              {shareLoading ? 'Sharing…' : 'Share'}
+            </button>
             <button
               onClick={() => window.print()}
               className="px-4 py-2.5 rounded-xl border border-border-subtle text-text-secondary text-sm font-medium hover:bg-bg-secondary transition flex items-center gap-2"
@@ -230,6 +276,52 @@ function ReportResults() {
         )}
         {activeTab === 'report' && <DoctorReport report={clinicalReport} patientInfo={data.patient_info} />}
       </div>
+
+      {/* Share Modal */}
+      {shareOpen && shareData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm fade-in" onClick={() => setShareOpen(false)}>
+          <div className="glass-card w-full max-w-md mx-4 p-6 rounded-2xl shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-text-primary">Share Report</h3>
+              <button onClick={() => setShareOpen(false)} className="text-text-muted hover:text-text-primary transition">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-text-secondary text-sm mb-3">Anyone with this link can view this report (read-only).</p>
+            <div className="flex items-center gap-2 bg-bg-secondary rounded-xl px-3 py-2.5 mb-3">
+              <span className="flex-1 text-xs text-text-secondary truncate font-mono">
+                {window.location.origin + shareData.share_url}
+              </span>
+              <button
+                onClick={handleCopy}
+                className="shrink-0 p-1.5 rounded-lg hover:bg-bg-primary transition text-text-muted hover:text-accent-blue"
+                title="Copy link"
+              >
+                {copied ? (
+                  <svg className="w-4 h-4 text-accent-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            <p className="text-xs text-text-muted mb-5">
+              Link expires in 7 days &middot; {new Date(shareData.expires_at).toLocaleDateString()}
+            </p>
+            <button
+              onClick={handleRevoke}
+              className="w-full px-4 py-2.5 rounded-xl border border-accent-red/40 text-accent-red text-sm font-medium hover:bg-accent-red/10 transition"
+            >
+              Revoke Link
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* AI Chat FAB */}
       <button
