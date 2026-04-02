@@ -4,8 +4,9 @@ Handles report upload, analysis, and retrieval.
 """
 import logging
 import io
+import json
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
@@ -15,6 +16,7 @@ from services.pipeline import run_full_pipeline_async
 from services.knowledge_graph import get_full_graph_stats, get_subgraph, query_related
 from services.trend_analysis import get_patient_trends
 from services.drug_interactions import run_full_interaction_check
+from services.fhir import build_fhir_bundle, parse_fhir_bundle
 
 logger = logging.getLogger(__name__)
 
@@ -254,6 +256,105 @@ async def get_report(report_id: str, db: AsyncSession = Depends(get_db)):
         "graph_risks": graph_risks,
     }
 
+
+
+# ── FHIR R4 Export / Import ─────────────────────────────────
+
+@router.get("/{report_id}/fhir")
+async def export_report_fhir(report_id: str, db: AsyncSession = Depends(get_db)):
+    """Export a report as a FHIR R4 Bundle (application/fhir+json)."""
+    query = select(Report).where(Report.id == report_id)
+    result = await db.execute(query)
+    report = result.scalar_one_or_none()
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    lab_query = select(LabResult).where(LabResult.report_id == report_id)
+    lab_results = (await db.execute(lab_query)).scalars().all()
+
+    patient_info = None
+    if report.patient_id:
+        patient_query = select(Patient).where(Patient.id == report.patient_id)
+        patient = (await db.execute(patient_query)).scalar_one_or_none()
+        if patient:
+            patient_info = {
+                "name": patient.name,
+                "age": patient.age,
+                "gender": patient.gender,
+            }
+
+    lab_values = [
+        {
+            "test_name": lr.test_name,
+            "value": lr.value,
+            "unit": lr.unit,
+            "reference_min": lr.reference_min,
+            "reference_max": lr.reference_max,
+            "status": lr.status,
+        }
+        for lr in lab_results
+    ]
+
+    bundle = build_fhir_bundle(report, lab_values, patient_info)
+    return Response(
+        content=json.dumps(bundle, indent=2),
+        media_type="application/fhir+json",
+        headers={"Content-Disposition": f"attachment; filename=report_{report_id}_fhir.json"},
+    )
+
+
+@router.post("/fhir-import")
+async def import_fhir_bundle(bundle: dict, db: AsyncSession = Depends(get_db)):
+    """Import a FHIR R4 Bundle and create a new Report with extracted lab values."""
+    try:
+        extracted = parse_fhir_bundle(bundle)
+    except Exception as e:
+        raise HTTPException(status_code=422, detail=f"Invalid FHIR bundle: {e}")
+
+    patient_info = extracted.get("patient_info", {})
+    lab_values = extracted.get("lab_values", [])
+
+    try:
+        # Create patient if info is present
+        patient = None
+        if patient_info.get("name") or patient_info.get("gender"):
+            patient = Patient(
+                name=patient_info.get("name"),
+                age=patient_info.get("age"),
+                gender=patient_info.get("gender"),
+            )
+            db.add(patient)
+            await db.flush()
+
+        report = Report(
+            patient_id=patient.id if patient else None,
+            filename="fhir_import.json",
+            document_type="lab_report",
+            status="completed",
+            analysis_result={"source": "fhir_import"},
+        )
+        db.add(report)
+        await db.flush()
+
+        for lab in lab_values:
+            lab_result = LabResult(
+                report_id=report.id,
+                test_name=lab.get("test_name", ""),
+                value=lab.get("value"),
+                unit=lab.get("unit"),
+                reference_min=lab.get("reference_min"),
+                reference_max=lab.get("reference_max"),
+                status=lab.get("status", "normal"),
+            )
+            db.add(lab_result)
+
+        await db.commit()
+    except Exception as e:
+        logger.error(f"FHIR import DB save failed: {e}")
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database save failed: {e}")
+
+    return {"report_id": report.id, "lab_values_imported": len(lab_values)}
 
 
 @router.get("/knowledge-graph/stats")
