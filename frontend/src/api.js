@@ -1,9 +1,9 @@
 import axios from 'axios';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 const api = axios.create({
-  baseURL: `${API_BASE}/api`,
+  baseURL: API_BASE,
   timeout: 120000, // 2 min for large PDFs
 });
 
@@ -66,14 +66,18 @@ export const uploadReportPending = async (file, onUploadProgress) => {
   return response.data; // { report_id, patient_id, status: "pending" }
 };
 
+export const getWsBase = () => {
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = import.meta.env.VITE_WS_URL || `${proto}//${window.location.host}`;
+  return host;
+};
+
 /**
  * Open a WebSocket to /ws/pipeline/{reportId}.
  * Returns the WebSocket instance; caller attaches .onmessage / .onerror.
  */
 export const openPipelineSocket = (reportId) => {
-  const wsBase = (import.meta.env.VITE_API_URL || 'http://localhost:8000')
-    .replace(/^http/, 'ws');
-  return new WebSocket(`${wsBase}/ws/pipeline/${reportId}`);
+  return new WebSocket(`${getWsBase()}/ws/pipeline/${reportId}`);
 };
 
 export const listReports = async (page = 1, pageSize = 20) => {
@@ -117,7 +121,7 @@ export const getAnalytics = async () => {
 };
 
 export const getReportPdfUrl = (reportId) => {
-  return `${API_BASE}/api/reports/export/${reportId}/pdf`;
+  return `${API_BASE}/reports/export/${reportId}/pdf`;
 };
 
 export const sendChatMessage = async (reportId, message) => {
