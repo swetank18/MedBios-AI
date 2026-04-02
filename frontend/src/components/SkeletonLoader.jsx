@@ -1,5 +1,5 @@
 function SkeletonLoader({ type = 'card' }) {
-  const shimmer = 'relative overflow-hidden bg-white/[0.04] before:absolute before:inset-0 before:-translate-x-full before:bg-gradient-to-r before:from-transparent before:via-white/[0.04] before:to-transparent before:animate-[shimmer_2s_infinite]';
+  const shimmer = 'relative overflow-hidden bg-bg-secondary before:absolute before:inset-0 before:-translate-x-full before:bg-gradient-to-r before:from-transparent before:via-white/[0.04] before:to-transparent before:animate-[shimmer_2s_infinite]';
 
   if (type === 'stats') {
     return (

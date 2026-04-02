@@ -39,20 +39,14 @@ function Login() {
         <div className="relative z-10 flex flex-col justify-center px-16 max-w-xl">
           {/* Logo */}
           <div className="flex items-center gap-3 mb-10">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-blue/20 to-accent-purple/20 border border-accent-blue/20 flex items-center justify-center">
-              <svg className="w-6 h-6" viewBox="0 0 32 32" fill="none">
-                <circle cx="16" cy="16" r="14" stroke="url(#lg)" strokeWidth="2.5"/>
-                <path d="M16 8v16M12 12h8M12 20h8" stroke="url(#lg)" strokeWidth="2" strokeLinecap="round"/>
-                <defs>
-                  <linearGradient id="lg" x1="0" y1="0" x2="32" y2="32">
-                    <stop stopColor="#38bdf8"/><stop offset="1" stopColor="#a78bfa"/>
-                  </linearGradient>
-                </defs>
-              </svg>
+            <svg className="w-12 h-12 drop-shadow-sm" viewBox="0 0 36 36" fill="none">
+              <rect x="1" y="1" width="34" height="34" rx="9" fill="#ecfdf5" stroke="#10b981" strokeWidth="1.5"/>
+              <path d="M4 18L8 18L9.5 14L12 21L14 6L16.5 23L18.5 18L22 13L25.5 18L32 18" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+            <div className="flex flex-col leading-tight">
+              <span className="text-2xl font-bold text-[#065f46] tracking-tight">MedBios AI</span>
+              <span className="text-[0.6rem] text-[#4a9175] font-semibold tracking-widest uppercase">Clinical Intelligence</span>
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-accent-blue to-accent-purple bg-clip-text text-transparent">
-              MedBios AI
-            </span>
           </div>
 
           <h2 className="text-4xl font-bold text-text-primary leading-tight mb-4">

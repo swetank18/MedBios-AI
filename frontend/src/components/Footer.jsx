@@ -14,14 +14,14 @@ function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2.5 mb-4">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-blue/15 to-accent-purple/15 border border-accent-blue/15 flex items-center justify-center">
-                <svg className="w-4 h-4" viewBox="0 0 32 32" fill="none">
-                  <circle cx="16" cy="16" r="14" stroke="url(#gf)" strokeWidth="2.5"/>
-                  <path d="M16 8v16M12 12h8M12 20h8" stroke="url(#gf)" strokeWidth="2" strokeLinecap="round"/>
-                  <defs><linearGradient id="gf" x1="0" y1="0" x2="32" y2="32"><stop stopColor="#38bdf8"/><stop offset="1" stopColor="#a78bfa"/></linearGradient></defs>
-                </svg>
+              <svg className="w-8 h-8" viewBox="0 0 36 36" fill="none">
+                <rect x="1" y="1" width="34" height="34" rx="9" fill="#ecfdf5" stroke="#10b981" strokeWidth="1.5"/>
+                <path d="M4 18L8 18L9.5 14L12 21L14 6L16.5 23L18.5 18L22 13L25.5 18L32 18" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+              <div className="flex flex-col leading-tight">
+                <span className="font-bold text-[#065f46] tracking-tight">MedBios AI</span>
+                <span className="text-[0.5rem] text-[#4a9175] font-semibold tracking-widest uppercase">Clinical Intelligence</span>
               </div>
-              <span className="font-bold bg-gradient-to-r from-accent-blue to-accent-purple bg-clip-text text-transparent">MedBios AI</span>
             </div>
             <p className="text-text-muted text-xs leading-relaxed max-w-xs">
               AI-powered clinical intelligence platform. Analyze medical reports with explainable reasoning, knowledge graphs, and personalized health insights.

@@ -66,20 +66,14 @@ function Signup() {
       <div className="relative w-full max-w-md page-enter">
         {/* Logo & Brand */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-accent-purple/15 to-accent-blue/15 border border-accent-purple/15 mb-3">
-            <svg className="w-7 h-7" viewBox="0 0 32 32" fill="none">
-              <circle cx="16" cy="16" r="14" stroke="url(#lgs)" strokeWidth="2.5"/>
-              <path d="M16 8v16M12 12h8M12 20h8" stroke="url(#lgs)" strokeWidth="2" strokeLinecap="round"/>
-              <defs>
-                <linearGradient id="lgs" x1="0" y1="0" x2="32" y2="32">
-                  <stop stopColor="#a78bfa"/><stop offset="1" stopColor="#38bdf8"/>
-                </linearGradient>
-              </defs>
-            </svg>
+          <svg className="w-14 h-14 mb-3" viewBox="0 0 36 36" fill="none">
+            <rect x="1" y="1" width="34" height="34" rx="9" fill="#ecfdf5" stroke="#10b981" strokeWidth="1.5"/>
+            <path d="M4 18L8 18L9.5 14L12 21L14 6L16.5 23L18.5 18L22 13L25.5 18L32 18" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          <div className="flex flex-col items-center leading-tight mb-1">
+            <span className="text-2xl font-bold text-[#065f46] tracking-tight">MedBios AI</span>
+            <span className="text-[0.6rem] text-[#4a9175] font-semibold tracking-widest uppercase">Clinical Intelligence</span>
           </div>
-          <h1 className="text-2xl font-bold med-gradient-text">
-            Join MedBios AI
-          </h1>
           <p className="text-text-muted text-sm mt-1">Create your clinical intelligence account</p>
         </div>
 
@@ -185,7 +179,7 @@ function Signup() {
                 <div className="mt-2">
                   <div className="flex gap-1 mb-1">
                     {[1, 2, 3, 4].map(i => (
-                      <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= strength.score ? strength.color : 'bg-white/10'}`} />
+                      <div key={i} className={`h-1 flex-1 rounded-full transition-all duration-300 ${i <= strength.score ? strength.color : 'bg-bg-elevated'}`} />
                     ))}
                   </div>
                   <p className="text-[0.6rem] text-text-muted">Password strength: <span className={`font-semibold ${strength.score >= 3 ? 'text-accent-green' : strength.score >= 2 ? 'text-accent-orange' : 'text-accent-red'}`}>{strength.label}</span></p>

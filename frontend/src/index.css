@@ -3,12 +3,12 @@
 
 @theme {
   /* ── Green & White Medical Palette ── */
-  --color-bg-primary:       #f8fbfa;
-  --color-bg-secondary:     #f0f9f4;
-  --color-bg-card:          #ffffff;
-  --color-bg-card-hover:    #f0fdf4;
-  --color-bg-elevated:      #e8f5ef;
-  --color-border-subtle:    #d1e8de;
+  --color-bg-primary:       #f0f4f2;
+  --color-bg-secondary:     #e6ede9;
+  --color-bg-card:          #fafcfb;
+  --color-bg-card-hover:    #edf5f0;
+  --color-bg-elevated:      #dce8e1;
+  --color-border-subtle:    #c8ddd4;
   --color-border-active:    #10b981;
 
   /* ── Clinical accent colors — emerald-first ── */
