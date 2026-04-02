@@ -35,6 +35,13 @@ function Settings() {
     weeklyDigest: false,
     drugAlerts: true,
   });
+  const [notifPrefs, setNotifPrefs] = useState({
+    email_on_critical: true,
+    email_on_complete: false,
+    alert_email: '',
+  });
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [testEmailLoading, setTestEmailLoading] = useState(false);
 
   const sections = [
     { id: 'profile', label: 'Profile', icon: 'M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0' },
@@ -45,6 +52,59 @@ function Settings() {
     { id: 'audit', label: 'Audit Log', icon: 'M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z' },
     { id: 'about', label: 'About', icon: 'M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z' },
   ];
+
+  // Load notification preferences on mount
+  useEffect(() => {
+    fetch(`${API_BASE}/notifications/preferences`)
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then(data => setNotifPrefs(prev => ({ ...prev, ...data })))
+      .catch(() => {});
+  }, []);
+
+  const saveNotifPrefs = async () => {
+    setNotifLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/notifications/preferences`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(notifPrefs),
+      });
+      if (res.ok) {
+        addToast('Notification preferences saved!', 'success');
+      } else {
+        addToast('Failed to save preferences', 'error');
+      }
+    } catch {
+      addToast('Failed to save preferences', 'error');
+    } finally {
+      setNotifLoading(false);
+    }
+  };
+
+  const sendTestEmail = async () => {
+    if (!notifPrefs.alert_email) {
+      addToast('Enter an alert email address first', 'error');
+      return;
+    }
+    setTestEmailLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/notifications/test-email`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: notifPrefs.alert_email }),
+      });
+      const data = await res.json();
+      if (data.sent) {
+        addToast('Test email sent!', 'success');
+      } else {
+        addToast(data.reason || 'Email not sent', 'error');
+      }
+    } catch {
+      addToast('Failed to send test email', 'error');
+    } finally {
+      setTestEmailLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (activeSection !== 'audit') return;
@@ -193,31 +253,96 @@ function Settings() {
           )}
 
           {activeSection === 'notifications' && (
-            <div className="glass-card fade-in">
-              <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">Notification Preferences</h3>
-              <div className="space-y-3">
-                {[
-                  { key: 'criticalAlerts', label: 'Critical Lab Alerts', desc: 'Get notified when critical values are detected', important: true },
-                  { key: 'reportReady', label: 'Report Ready', desc: 'Notification when analysis is complete' },
-                  { key: 'drugAlerts', label: 'Drug Interaction Alerts', desc: 'Alerts for dangerous drug combinations', important: true },
-                  { key: 'weeklyDigest', label: 'Weekly Digest', desc: 'Summary of all reports analyzed this week' },
-                ].map(n => (
-                  <div key={n.key} className="flex items-center justify-between px-4 py-3 rounded-xl bg-bg-secondary border border-border-subtle">
+            <div className="space-y-6 fade-in">
+              {/* Email Alert Preferences */}
+              <div className="glass-card">
+                <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-1">Email Alerts</h3>
+                <p className="text-xs text-text-muted mb-4">Configure email notifications for critical lab findings</p>
+                <div className="space-y-3 mb-4">
+                  <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-bg-secondary border border-border-subtle">
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-text-primary font-medium">{n.label}</span>
-                        {n.important && <span className="text-[0.5rem] px-1.5 py-0.5 rounded bg-accent-red/15 text-accent-red font-bold uppercase">Important</span>}
+                        <span className="text-sm text-text-primary font-medium">Email on Critical Values</span>
+                        <span className="text-[0.5rem] px-1.5 py-0.5 rounded bg-accent-red/15 text-accent-red font-bold uppercase">Important</span>
                       </div>
-                      <p className="text-xs text-text-muted mt-0.5">{n.desc}</p>
+                      <p className="text-xs text-text-muted mt-0.5">Send an email when critical lab values are detected</p>
                     </div>
                     <button
-                      onClick={() => setNotifications(p => ({ ...p, [n.key]: !p[n.key] }))}
-                      className={`w-11 h-6 rounded-full transition-colors relative ${notifications[n.key] ? 'bg-accent-blue' : 'bg-white/10'}`}
+                      onClick={() => setNotifPrefs(p => ({ ...p, email_on_critical: !p.email_on_critical }))}
+                      className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${notifPrefs.email_on_critical ? 'bg-accent-blue' : 'bg-white/10'}`}
                     >
-                      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${notifications[n.key] ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${notifPrefs.email_on_critical ? 'translate-x-5' : 'translate-x-0.5'}`} />
                     </button>
                   </div>
-                ))}
+                  <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-bg-secondary border border-border-subtle">
+                    <div>
+                      <span className="text-sm text-text-primary font-medium">Email on Report Complete</span>
+                      <p className="text-xs text-text-muted mt-0.5">Notify when report analysis finishes</p>
+                    </div>
+                    <button
+                      onClick={() => setNotifPrefs(p => ({ ...p, email_on_complete: !p.email_on_complete }))}
+                      className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${notifPrefs.email_on_complete ? 'bg-accent-blue' : 'bg-white/10'}`}
+                    >
+                      <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${notifPrefs.email_on_complete ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                    </button>
+                  </div>
+                </div>
+                <div className="mb-4">
+                  <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">Alert Email Address</label>
+                  <input
+                    type="email"
+                    value={notifPrefs.alert_email}
+                    onChange={e => setNotifPrefs(p => ({ ...p, alert_email: e.target.value }))}
+                    placeholder={user?.email || 'your@email.com'}
+                    className="w-full px-4 py-2.5 rounded-xl bg-bg-elevated border border-border-subtle text-text-primary text-sm focus:outline-none focus:border-accent-blue transition"
+                  />
+                  <p className="text-xs text-text-muted mt-1">Leave blank to use your account email</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={saveNotifPrefs}
+                    disabled={notifLoading}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-accent-blue to-accent-purple text-white text-sm font-medium hover:opacity-90 transition disabled:opacity-50"
+                  >
+                    {notifLoading ? 'Saving...' : 'Save Preferences'}
+                  </button>
+                  <button
+                    onClick={sendTestEmail}
+                    disabled={testEmailLoading}
+                    className="px-5 py-2.5 rounded-xl border border-border-subtle text-text-secondary text-sm font-medium hover:bg-bg-secondary transition disabled:opacity-50"
+                  >
+                    {testEmailLoading ? 'Sending...' : 'Send Test Email'}
+                  </button>
+                </div>
+              </div>
+
+              {/* In-App Notification Preferences */}
+              <div className="glass-card">
+                <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">In-App Notifications</h3>
+                <div className="space-y-3">
+                  {[
+                    { key: 'criticalAlerts', label: 'Critical Lab Alerts', desc: 'Get notified when critical values are detected', important: true },
+                    { key: 'reportReady', label: 'Report Ready', desc: 'Notification when analysis is complete' },
+                    { key: 'drugAlerts', label: 'Drug Interaction Alerts', desc: 'Alerts for dangerous drug combinations', important: true },
+                    { key: 'weeklyDigest', label: 'Weekly Digest', desc: 'Summary of all reports analyzed this week' },
+                  ].map(n => (
+                    <div key={n.key} className="flex items-center justify-between px-4 py-3 rounded-xl bg-bg-secondary border border-border-subtle">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm text-text-primary font-medium">{n.label}</span>
+                          {n.important && <span className="text-[0.5rem] px-1.5 py-0.5 rounded bg-accent-red/15 text-accent-red font-bold uppercase">Important</span>}
+                        </div>
+                        <p className="text-xs text-text-muted mt-0.5">{n.desc}</p>
+                      </div>
+                      <button
+                        onClick={() => setNotifications(p => ({ ...p, [n.key]: !p[n.key] }))}
+                        className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${notifications[n.key] ? 'bg-accent-blue' : 'bg-white/10'}`}
+                      >
+                        <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${notifications[n.key] ? 'translate-x-5' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           )}

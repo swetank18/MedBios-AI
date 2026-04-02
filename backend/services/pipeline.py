@@ -17,6 +17,7 @@ from services.risk_scorer import compute_risk_scores
 from services.explainability import build_evidence_chains
 from services.report_generator import generate_clinical_summary
 from services.knowledge_graph import infer_downstream_risks, get_subgraph, enrich_graph_from_report
+from services.email_service import send_critical_alert
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,27 @@ PIPELINE_STAGES = [
 async def run_full_pipeline_async(file_bytes: bytes, filename: str = "report.pdf") -> dict:
     """Async wrapper that runs the CPU-bound pipeline in a thread pool."""
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(_executor, run_full_pipeline, file_bytes, filename)
+    result = await loop.run_in_executor(_executor, run_full_pipeline, file_bytes, filename)
+
+    # Send email alert for critical lab values if patient email is available
+    try:
+        lab_values = result.get("lab_values", [])
+        patient_info = result.get("patient_info", {})
+        critical = [
+            lv for lv in lab_values
+            if lv.get("is_abnormal") and lv.get("status") in ("critical", "high")
+        ]
+        if critical and patient_info and patient_info.get("email"):
+            await send_critical_alert(
+                to_email=patient_info["email"],
+                patient_name=patient_info.get("name", "Patient"),
+                report_id=filename,
+                critical_findings=critical,
+            )
+    except Exception:
+        pass  # Never let alert failure break the pipeline
+
+    return result
 
 
 async def run_pipeline_with_progress(
@@ -244,6 +265,22 @@ async def run_pipeline_with_progress(
         stage_errors["ReportGeneration"] = err
         log_stage("Report Generation", "Partial failure", error=err)
         await emit(8, "Report Generation", "error", 100, "Partial results — continuing")
+
+    # ── Email alert for critical lab values ──
+    try:
+        critical = [
+            lv for lv in lab_values
+            if lv.get("is_abnormal") and lv.get("status") in ("critical", "high")
+        ]
+        if critical and patient_info and patient_info.get("email"):
+            await send_critical_alert(
+                to_email=patient_info["email"],
+                patient_name=patient_info.get("name", "Patient"),
+                report_id=filename,
+                critical_findings=critical,
+            )
+    except Exception:
+        pass  # Never let alert failure break the pipeline
 
     total_time = round(time.time() - start_time, 3)
     overall_status = "partial" if stage_errors else "completed"
