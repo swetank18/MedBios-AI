@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { useToast } from '../components/ToastProvider';
+import { useLanguage } from '../components/LanguageContext';
+import { LANGUAGES } from '../i18n';
 
 const THEMES = [
   { id: 'dark', label: 'Dark', preview: 'bg-[#0a0e17]' },
@@ -19,6 +21,7 @@ const ACCENT_COLORS = [
 function Settings() {
   const { user, logout } = useAuth();
   const { addToast } = useToast();
+  const { lang, setLang, t } = useLanguage();
   const [activeSection, setActiveSection] = useState('profile');
   const [selectedTheme, setSelectedTheme] = useState('dark');
   const [selectedAccent, setSelectedAccent] = useState('blue');
@@ -34,6 +37,7 @@ function Settings() {
     { id: 'appearance', label: 'Appearance', icon: 'M9.53 16.122a3 3 0 00-5.78 1.128 2.25 2.25 0 01-2.4 2.245 4.5 4.5 0 008.4-2.245c0-.399-.078-.78-.22-1.128zm0 0a15.998 15.998 0 003.388-1.62m-5.043-.025a15.994 15.994 0 011.622-3.395m3.42 3.42a15.995 15.995 0 004.764-4.648l3.876-5.814a1.151 1.151 0 00-1.597-1.597L14.146 6.32a15.996 15.996 0 00-4.649 4.763m3.42 3.42a6.776 6.776 0 00-3.42-3.42' },
     { id: 'notifications', label: 'Notifications', icon: 'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0' },
     { id: 'shortcuts', label: 'Keyboard Shortcuts', icon: 'M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z' },
+    { id: 'language', label: 'Language & Region', icon: 'M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253M3 12a8.959 8.959 0 011.716-5.336' },
     { id: 'about', label: 'About', icon: 'M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z' },
   ];
 
@@ -216,6 +220,37 @@ function Settings() {
                       ))}
                     </div>
                   </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'language' && (
+            <div className="glass-card fade-in">
+              <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-1">{t('language')}</h3>
+              <p className="text-xs text-text-muted mb-5">Choose your preferred language for the interface</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {LANGUAGES.map(l => (
+                  <button
+                    key={l.code}
+                    onClick={() => { setLang(l.code); addToast(`Language: ${l.label}`, 'success'); }}
+                    className={`flex flex-col items-center gap-2 px-4 py-4 rounded-xl border transition ${
+                      lang === l.code
+                        ? 'border-accent-green bg-accent-green/10 text-accent-green'
+                        : 'border-border-subtle hover:border-text-muted text-text-secondary hover:bg-bg-secondary'
+                    }`}
+                  >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253M3 12a8.959 8.959 0 011.716-5.336" />
+                    </svg>
+                    <span className="text-sm font-semibold">{l.label}</span>
+                    <span className="text-[0.6rem] uppercase tracking-wider opacity-60">{l.dir === 'rtl' ? 'RTL' : 'LTR'}</span>
+                    {lang === l.code && (
+                      <svg className="w-4 h-4 text-accent-green" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                    )}
+                  </button>
                 ))}
               </div>
             </div>
