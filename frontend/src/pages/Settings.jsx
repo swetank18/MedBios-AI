@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../components/AuthContext';
 import { useToast } from '../components/ToastProvider';
 import { useLanguage } from '../components/LanguageContext';
 import { LANGUAGES } from '../i18n';
+
+const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:8000') + '/api';
 
 const THEMES = [
   { id: 'dark', label: 'Dark', preview: 'bg-[#0a0e17]' },
@@ -25,6 +27,8 @@ function Settings() {
   const [activeSection, setActiveSection] = useState('profile');
   const [selectedTheme, setSelectedTheme] = useState('dark');
   const [selectedAccent, setSelectedAccent] = useState('blue');
+  const [auditLogs, setAuditLogs] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
   const [notifications, setNotifications] = useState({
     criticalAlerts: true,
     reportReady: true,
@@ -38,8 +42,19 @@ function Settings() {
     { id: 'notifications', label: 'Notifications', icon: 'M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0' },
     { id: 'shortcuts', label: 'Keyboard Shortcuts', icon: 'M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z' },
     { id: 'language', label: 'Language & Region', icon: 'M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253M3 12a8.959 8.959 0 011.716-5.336' },
+    { id: 'audit', label: 'Audit Log', icon: 'M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z' },
     { id: 'about', label: 'About', icon: 'M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z' },
   ];
+
+  useEffect(() => {
+    if (activeSection !== 'audit') return;
+    setAuditLoading(true);
+    fetch(`${API_BASE}/audit-logs?limit=20`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(data => setAuditLogs(data.items || []))
+      .catch(() => setAuditLogs([]))
+      .finally(() => setAuditLoading(false));
+  }, [activeSection]);
 
   const shortcuts = [
     { keys: ['Ctrl', 'U'], action: 'Upload Report' },
@@ -253,6 +268,55 @@ function Settings() {
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {activeSection === 'audit' && (
+            <div className="glass-card fade-in">
+              <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">Audit Log</h3>
+              <p className="text-xs text-text-muted mb-4">Recent platform activity — newest first.</p>
+              {auditLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-6 h-6 border-2 border-accent-blue border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : auditLogs.length === 0 ? (
+                <p className="text-sm text-text-muted text-center py-8">No audit entries found.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="data-table w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-border-subtle">
+                        <th className="text-left py-2 pr-4 text-xs font-semibold text-text-muted uppercase tracking-wider">Timestamp</th>
+                        <th className="text-left py-2 pr-4 text-xs font-semibold text-text-muted uppercase tracking-wider">Action</th>
+                        <th className="text-left py-2 pr-4 text-xs font-semibold text-text-muted uppercase tracking-wider">Resource</th>
+                        <th className="text-left py-2 text-xs font-semibold text-text-muted uppercase tracking-wider">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {auditLogs.map(entry => (
+                        <tr key={entry.id} className="border-b border-border-subtle/40 hover:bg-bg-secondary/50 transition">
+                          <td className="py-2 pr-4 text-text-muted font-mono text-xs whitespace-nowrap">
+                            {entry.timestamp ? new Date(entry.timestamp).toLocaleString() : '—'}
+                          </td>
+                          <td className="py-2 pr-4 text-text-primary font-medium">{entry.action}</td>
+                          <td className="py-2 pr-4 text-text-secondary">
+                            {entry.resource_type}{entry.resource_id ? ` · ${entry.resource_id.slice(0, 8)}` : ''}
+                          </td>
+                          <td className="py-2">
+                            <span className={`text-[0.65rem] px-2 py-0.5 rounded-full font-semibold uppercase ${
+                              entry.status === 'success'
+                                ? 'bg-accent-green/15 text-accent-green'
+                                : 'bg-accent-red/15 text-accent-red'
+                            }`}>
+                              {entry.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

@@ -10,9 +10,11 @@ from fastapi.responses import StreamingResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
+from fastapi import Request
 from database import get_db
 from models import Patient, Report, LabResult, ClinicalInsight
 from services.pipeline import run_full_pipeline_async
+from services.audit import log_action
 from services.knowledge_graph import get_full_graph_stats, get_subgraph, query_related
 from services.trend_analysis import get_patient_trends
 from services.drug_interactions import run_full_interaction_check
@@ -25,6 +27,7 @@ router = APIRouter()
 
 @router.post("/upload")
 async def upload_report(
+    request: Request,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
 ):
@@ -123,6 +126,15 @@ async def upload_report(
         # Still return results even if DB save fails
         result["db_warning"] = "Results generated but database save failed"
 
+    await log_action(
+        db,
+        action="report.create",
+        resource_type="report",
+        resource_id=result.get("report_id"),
+        request=request,
+        detail={"filename": file.filename},
+    )
+
     # Remove raw_text from response (too large)
     result.pop("raw_text", None)
 
@@ -164,7 +176,7 @@ async def list_reports(
 
 
 @router.get("/{report_id}")
-async def get_report(report_id: str, db: AsyncSession = Depends(get_db)):
+async def get_report(report_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     """Get full analysis results for a specific report."""
     query = select(Report).where(Report.id == report_id)
     result = await db.execute(query)
@@ -236,6 +248,14 @@ async def get_report(report_id: str, db: AsyncSession = Depends(get_db)):
         for ins in insights
     ]
 
+    await log_action(
+        db,
+        action="report.view",
+        resource_type="report",
+        resource_id=report_id,
+        request=request,
+    )
+
     return {
         "id": report.id,
         "filename": report.filename,
@@ -261,7 +281,7 @@ async def get_report(report_id: str, db: AsyncSession = Depends(get_db)):
 # ── FHIR R4 Export / Import ─────────────────────────────────
 
 @router.get("/{report_id}/fhir")
-async def export_report_fhir(report_id: str, db: AsyncSession = Depends(get_db)):
+async def export_report_fhir(report_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     """Export a report as a FHIR R4 Bundle (application/fhir+json)."""
     query = select(Report).where(Report.id == report_id)
     result = await db.execute(query)
@@ -296,6 +316,13 @@ async def export_report_fhir(report_id: str, db: AsyncSession = Depends(get_db))
     ]
 
     bundle = build_fhir_bundle(report, lab_values, patient_info)
+    await log_action(
+        db,
+        action="report.export_fhir",
+        resource_type="report",
+        resource_id=report_id,
+        request=request,
+    )
     return Response(
         content=json.dumps(bundle, indent=2),
         media_type="application/fhir+json",
@@ -451,16 +478,32 @@ async def patient_trends(patient_id: str, db: AsyncSession = Depends(get_db)):
 from schemas import DrugInteractionRequest, DrugLabInteractionRequest
 
 @router.post("/drug-interactions/check")
-async def check_drug_interactions(payload: DrugInteractionRequest):
+async def check_drug_interactions(
+    payload: DrugInteractionRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
     """
     Check for drug-drug interactions.
     Body: { "medications": ["warfarin", "aspirin", "metformin"] }
     """
-    return run_full_interaction_check(payload.medications)
+    result = run_full_interaction_check(payload.medications)
+    await log_action(
+        db,
+        action="drug.check",
+        resource_type="drug_interaction",
+        request=request,
+        detail={"medications": payload.medications},
+    )
+    return result
 
 
 @router.post("/drug-interactions/lab-check")
-async def check_drug_lab_interactions(payload: DrugLabInteractionRequest):
+async def check_drug_lab_interactions(
+    payload: DrugLabInteractionRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
     """
     Check for drug-lab interactions with patient's current lab values.
     Body: {
@@ -468,7 +511,15 @@ async def check_drug_lab_interactions(payload: DrugLabInteractionRequest):
         "lab_values": [{"test_name": "potassium", "value": 5.4, "status": "high"}]
     }
     """
-    return run_full_interaction_check(payload.medications, payload.lab_values)
+    result = run_full_interaction_check(payload.medications, payload.lab_values)
+    await log_action(
+        db,
+        action="drug.check",
+        resource_type="drug_interaction",
+        request=request,
+        detail={"medications": payload.medications},
+    )
+    return result
 
 
 # ── Analytics Dashboard ─────────────────────────────────────
@@ -551,7 +602,7 @@ async def analytics_dashboard(db: AsyncSession = Depends(get_db)):
 # ── PDF Clinical Report Export ──────────────────────────────
 
 @router.get("/export/{report_id}/pdf")
-async def export_report_pdf(report_id: str, db: AsyncSession = Depends(get_db)):
+async def export_report_pdf(report_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     """Generate and download a clinical report as PDF."""
     # Fetch report data
     query = select(Report).where(Report.id == report_id)
@@ -752,6 +803,13 @@ async def export_report_pdf(report_id: str, db: AsyncSession = Depends(get_db)):
     buffer.seek(0)
 
     filename = f"medbios_report_{report_id[:8]}.pdf"
+    await log_action(
+        db,
+        action="report.export_pdf",
+        resource_type="report",
+        resource_id=report_id,
+        request=request,
+    )
     return StreamingResponse(
         buffer,
         media_type="application/pdf",

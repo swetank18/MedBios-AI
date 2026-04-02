@@ -3,7 +3,7 @@ MedBios AI — Database Models
 """
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Float, Text, DateTime, ForeignKey, JSON
+from sqlalchemy import String, Float, Text, DateTime, ForeignKey, JSON, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
@@ -42,9 +42,50 @@ class Report(Base):
     # Full analysis result as JSON
     analysis_result: Mapped[dict] = mapped_column(JSON, nullable=True)
 
+    # Encrypted sensitive fields — stored as Fernet ciphertext.
+    # Existing plain-text rows can be migrated with a one-time script:
+    #   for r in session.query(Report).all():
+    #       if r._patient_name and not r._patient_name.startswith("gAAAA"):
+    #           r._patient_name = encrypt_field(r._patient_name)
+    #   session.commit()
+    _patient_name: Mapped[str] = mapped_column("patient_name_encrypted", String(1000), nullable=True)
+    _patient_dob: Mapped[str] = mapped_column("patient_dob_encrypted", String(1000), nullable=True)
+
     patient: Mapped["Patient"] = relationship(back_populates="reports")
     lab_results: Mapped[list["LabResult"]] = relationship(back_populates="report", cascade="all, delete-orphan")
     insights: Mapped[list["ClinicalInsight"]] = relationship(back_populates="report", cascade="all, delete-orphan")
+
+    # ── Encrypted property accessors ────────────────────────────────────────
+
+    @property
+    def patient_name(self) -> str | None:
+        if not self._patient_name:
+            return None
+        from services.encryption import decrypt_field
+        return decrypt_field(self._patient_name)
+
+    @patient_name.setter
+    def patient_name(self, value: str | None) -> None:
+        if not value:
+            self._patient_name = None
+            return
+        from services.encryption import encrypt_field
+        self._patient_name = encrypt_field(value)
+
+    @property
+    def patient_dob(self) -> str | None:
+        if not self._patient_dob:
+            return None
+        from services.encryption import decrypt_field
+        return decrypt_field(self._patient_dob)
+
+    @patient_dob.setter
+    def patient_dob(self, value: str | None) -> None:
+        if not value:
+            self._patient_dob = None
+            return
+        from services.encryption import encrypt_field
+        self._patient_dob = encrypt_field(value)
 
 
 class LabResult(Base):
@@ -76,3 +117,24 @@ class ClinicalInsight(Base):
     recommendation: Mapped[str] = mapped_column(Text, nullable=True)
 
     report: Mapped["Report"] = relationship(back_populates="insights")
+
+
+class AuditLog(Base):
+    """Immutable audit trail of user actions for compliance and security.
+
+    New rows are append-only — never update or delete them.
+    """
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    timestamp: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, index=True
+    )
+    user_id: Mapped[str] = mapped_column(String(200), index=True, default="anonymous")
+    action: Mapped[str] = mapped_column(String(100), index=True)         # e.g. "report.create"
+    resource_type: Mapped[str] = mapped_column(String(100))              # "report", "drug_interaction"
+    resource_id: Mapped[str] = mapped_column(String(36), nullable=True)  # report id or None
+    ip_address: Mapped[str] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[str] = mapped_column(String(500), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="success")   # "success" | "error"
+    detail: Mapped[str] = mapped_column(Text, nullable=True)             # JSON string for extra context
