@@ -48,8 +48,7 @@ function Signup() {
     }
 
     setLoading(true);
-    await new Promise(r => setTimeout(r, 800));
-    const result = signup(form.name, form.email, form.password, form.role);
+    const result = await signup(form.name, form.email, form.password, form.role);
     if (!result.success) setError(result.error || 'Registration failed');
     setLoading(false);
   };

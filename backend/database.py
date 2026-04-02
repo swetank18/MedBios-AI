@@ -16,7 +16,7 @@ class Base(DeclarativeBase):
 async def init_db():
     """Create all tables."""
     async with engine.begin() as conn:
-        from models import Patient, Report, LabResult, ClinicalInsight, AuditLog  # noqa: F401
+        from models import User, Patient, Report, LabResult, ClinicalInsight, AuditLog  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
 
 

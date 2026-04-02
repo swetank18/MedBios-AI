@@ -39,6 +39,8 @@ app.add_middleware(
 # Mount routers
 from routers.reports import router as reports_router, _pending_uploads  # noqa: E402
 from routers.audit import router as audit_router                        # noqa: E402
+from routers.auth import router as auth_router                          # noqa: E402
+app.include_router(auth_router, prefix=f"{API_PREFIX}/auth", tags=["Auth"])
 app.include_router(reports_router, prefix=f"{API_PREFIX}/reports", tags=["Reports"])
 app.include_router(audit_router, prefix=f"{API_PREFIX}/audit-logs", tags=["Audit"])
 

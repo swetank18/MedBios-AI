@@ -15,9 +15,8 @@ function Login() {
     setLoading(true);
     setError('');
 
-    await new Promise(r => setTimeout(r, 600));
-    const result = login(email, password);
-    if (!result.success) setError('Invalid credentials');
+    const result = await login(email, password);
+    if (!result.success) setError(result.error || 'Invalid credentials');
     setLoading(false);
   };
 

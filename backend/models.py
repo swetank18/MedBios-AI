@@ -3,7 +3,7 @@ MedBios AI — Database Models
 """
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import String, Float, Text, DateTime, ForeignKey, JSON, Integer
+from sqlalchemy import String, Float, Text, DateTime, ForeignKey, JSON, Integer, Boolean
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
@@ -14,6 +14,18 @@ def _utcnow():
 
 def _uuid():
     return str(uuid.uuid4())
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    email: Mapped[str] = mapped_column(String(300), unique=True, nullable=False, index=True)
+    hashed_password: Mapped[str] = mapped_column(String(500), nullable=False)
+    role: Mapped[str] = mapped_column(String(100), default="Physician")
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
 
 class Patient(Base):

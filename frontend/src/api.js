@@ -7,6 +7,32 @@ const api = axios.create({
   timeout: 120000, // 2 min for large PDFs
 });
 
+// Attach Bearer token to every request automatically
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('medbios_access_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// ── Auth API ──────────────────────────────────────────────────────────────────
+
+export const authAPI = {
+  login: (email, password) =>
+    api.post('/auth/login', { email, password }),
+
+  register: (name, email, password, role) =>
+    api.post('/auth/register', { name, email, password, role }),
+
+  refresh: (refreshToken) =>
+    api.post('/auth/refresh', { refresh_token: refreshToken }),
+
+  me: () => api.get('/auth/me'),
+
+  logout: () => api.post('/auth/logout'),
+};
+
 export const uploadReport = async (file, onProgress) => {
   const formData = new FormData();
   formData.append('file', file);
