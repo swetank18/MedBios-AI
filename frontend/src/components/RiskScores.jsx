@@ -31,7 +31,7 @@ function RiskScores({ riskScores = {} }) {
       </div>
 
       {/* Overall Risk Circle */}
-      <div className="flex items-center gap-6 mb-6 p-4 rounded-xl bg-white/[0.02] border border-border-subtle">
+      <div className="flex items-center gap-6 mb-6 p-4 rounded-xl bg-bg-secondary border border-border-subtle">
         <div className="relative w-20 h-20 shrink-0">
           <svg className="w-full h-full -rotate-90" viewBox="0 0 72 72">
             <circle cx="36" cy="36" r="30" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
@@ -81,7 +81,7 @@ function RiskScores({ riskScores = {} }) {
                   </span>
                 </div>
               </div>
-              <div className="h-2 rounded-full bg-white/5 overflow-hidden">
+              <div className="h-2 rounded-full bg-bg-elevated overflow-hidden">
                 <div
                   className={`h-full rounded-full ${risk.bar} transition-all duration-1000`}
                   style={{

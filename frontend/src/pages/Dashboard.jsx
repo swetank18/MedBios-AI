@@ -93,7 +93,7 @@ function Dashboard() {
         <div className="absolute -bottom-16 -left-16 w-64 h-64 rounded-full bg-accent-purple/[0.04] blur-[80px] pointer-events-none" />
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-blue/20 to-transparent" />
         {/* Grid pattern */}
-        <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{backgroundImage: 'radial-gradient(circle, rgba(56,189,248,0.8) 1px, transparent 1px)', backgroundSize: '24px 24px'}} />
+        <div className="absolute inset-0 opacity-[0.015] pointer-events-none" style={{backgroundImage: 'radial-gradient(circle, rgba(16,185,129,0.5) 1px, transparent 1px)', backgroundSize: '24px 24px'}} />
 
         <div className="relative px-8 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
@@ -165,7 +165,7 @@ function Dashboard() {
                     <span className="text-sm text-text-secondary">{cat}</span>
                     <span className={`text-sm font-bold ${CATEGORY_TEXT[cat] || 'text-accent-blue'}`}>{count}</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-bg-elevated overflow-hidden">
                     <div
                       className={`h-full rounded-full ${CATEGORY_COLORS[cat] || 'bg-accent-blue'} transition-all duration-1000`}
                       style={{ width: `${(count / maxCatCount) * 100}%` }}
@@ -186,7 +186,7 @@ function Dashboard() {
               { label: 'Nodes', value: a.knowledge_graph?.total_nodes ?? '96', color: 'text-accent-blue' },
               { label: 'Edges', value: a.knowledge_graph?.total_edges ?? '97', color: 'text-accent-purple' },
             ].map((s, i) => (
-              <div key={i} className="text-center p-4 rounded-xl bg-white/[0.03] border border-border-subtle">
+              <div key={i} className="text-center p-4 rounded-xl bg-bg-secondary border border-border-subtle">
                 <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
                 <div className="text-[0.6rem] text-text-muted uppercase tracking-wider mt-1">{s.label}</div>
               </div>
@@ -346,7 +346,7 @@ function Dashboard() {
                 <button
                   onClick={() => setPage(p => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="px-3 py-1.5 rounded-lg text-xs border border-border-subtle text-text-secondary hover:bg-white/5 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 rounded-lg text-xs border border-border-subtle text-text-secondary hover:bg-bg-secondary transition disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
@@ -360,7 +360,7 @@ function Dashboard() {
                       className={`w-8 h-8 rounded-lg text-xs font-medium transition ${
                         p === page
                           ? 'bg-accent-blue text-white'
-                          : 'border border-border-subtle text-text-secondary hover:bg-white/5'
+                          : 'border border-border-subtle text-text-secondary hover:bg-bg-secondary'
                       }`}
                     >
                       {p}
@@ -370,7 +370,7 @@ function Dashboard() {
                 <button
                   onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}
-                  className="px-3 py-1.5 rounded-lg text-xs border border-border-subtle text-text-secondary hover:bg-white/5 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="px-3 py-1.5 rounded-lg text-xs border border-border-subtle text-text-secondary hover:bg-bg-secondary transition disabled:opacity-30 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>

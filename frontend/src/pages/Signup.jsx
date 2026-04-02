@@ -137,7 +137,7 @@ function Signup() {
                 <select
                   value={form.role}
                   onChange={(e) => update('role', e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/5 border border-border-subtle text-text-primary text-sm focus:outline-none focus:border-accent-purple transition appearance-none cursor-pointer"
+                  className="w-full pl-10 pr-4 py-3 rounded-xl bg-bg-elevated border border-border-subtle text-text-primary text-sm focus:outline-none focus:border-accent-purple transition appearance-none cursor-pointer"
                 >
                   {ROLES.map(r => <option key={r} value={r} className="bg-bg-card text-text-primary">{r}</option>)}
                 </select>
@@ -207,7 +207,7 @@ function Signup() {
                   value={form.confirm}
                   onChange={(e) => update('confirm', e.target.value)}
                   placeholder="Re-enter password"
-                  className={`w-full pl-10 pr-10 py-3 rounded-xl bg-white/5 border text-text-primary placeholder-text-muted text-sm focus:outline-none transition ${
+                  className={`w-full pl-10 pr-10 py-3 rounded-xl bg-bg-elevated border text-text-primary placeholder-text-muted text-sm focus:outline-none transition ${
                     form.confirm && form.confirm !== form.password
                       ? 'border-accent-red focus:border-accent-red'
                       : form.confirm && form.confirm === form.password

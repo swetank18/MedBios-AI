@@ -154,7 +154,7 @@ function OrganSystemVis({ riskScores = {} }) {
       </div>
 
       {/* Hover Detail Panel */}
-      <div className={`mt-3 rounded-xl border border-border-subtle bg-white/[0.02] p-3 transition-all duration-300 ${hovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
+      <div className={`mt-3 rounded-xl border border-border-subtle bg-bg-secondary p-3 transition-all duration-300 ${hovered ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2 pointer-events-none'}`}>
         {hovered && (
           <div>
             <div className="flex items-center justify-between mb-2">
@@ -166,7 +166,7 @@ function OrganSystemVis({ riskScores = {} }) {
             {hovered.factors.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {hovered.factors.slice(0, 4).map((f, i) => (
-                  <span key={i} className="text-[0.6rem] px-2 py-0.5 rounded-full bg-white/5 text-text-muted border border-border-subtle">{f}</span>
+                  <span key={i} className="text-[0.6rem] px-2 py-0.5 rounded-full bg-bg-elevated text-text-muted border border-border-subtle">{f}</span>
                 ))}
               </div>
             )}
@@ -176,7 +176,7 @@ function OrganSystemVis({ riskScores = {} }) {
       </div>
 
       {/* Bottom bar: system risk distribution */}
-      <div className="flex gap-0.5 mt-3 h-1.5 rounded-full overflow-hidden bg-white/5">
+      <div className="flex gap-0.5 mt-3 h-1.5 rounded-full overflow-hidden bg-bg-elevated">
         {activeOrgans.sort((a, b) => b.score - a.score).map(o => (
           <div
             key={o.key}

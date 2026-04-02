@@ -212,7 +212,7 @@ function UploadReport() {
           </div>
 
           {/* Overall progress bar */}
-          <div className="h-2 rounded-full bg-white/5 overflow-hidden mb-6">
+          <div className="h-2 rounded-full bg-bg-elevated overflow-hidden mb-6">
             <div
               className="h-full rounded-full bg-gradient-to-r from-accent-blue to-accent-purple transition-all duration-500 relative"
               style={{ width: `${overallProgress}%` }}

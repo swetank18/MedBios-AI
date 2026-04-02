@@ -38,7 +38,7 @@ function NotFound() {
           </button>
         </Link>
         <Link to="/upload">
-          <button className="px-6 py-2.5 rounded-xl border border-border-subtle text-text-secondary text-sm font-medium hover:bg-white/5 transition flex items-center gap-2">
+          <button className="px-6 py-2.5 rounded-xl border border-border-subtle text-text-secondary text-sm font-medium hover:bg-bg-secondary transition flex items-center gap-2">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
             </svg>
@@ -53,7 +53,7 @@ function NotFound() {
           { to: '/drug-interactions', label: 'Drug Checker', icon: '💊' },
           { to: '/settings', label: 'Settings', icon: '⚙️' },
         ].map(link => (
-          <Link key={link.to} to={link.to} className="px-4 py-2 rounded-full border border-border-subtle text-text-muted text-xs hover:text-text-primary hover:border-text-muted hover:bg-white/[0.02] transition flex items-center gap-1.5">
+          <Link key={link.to} to={link.to} className="px-4 py-2 rounded-full border border-border-subtle text-text-muted text-xs hover:text-text-primary hover:border-text-muted hover:bg-bg-secondary transition flex items-center gap-1.5">
             <span>{link.icon}</span>
             {link.label}
           </Link>

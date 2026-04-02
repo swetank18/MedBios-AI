@@ -63,7 +63,7 @@ function KnowledgeGraphViz({ graphData, graphRisks = [] }) {
             graphData={fgData}
             width={containerRef.current?.clientWidth || 800}
             height={500}
-            backgroundColor="#0a0e1a"
+            backgroundColor="#f8fbfa"
             nodeLabel={(n) => `${n.label} (${n.type})`}
             nodeColor={(n) => n.color}
             nodeRelSize={5}

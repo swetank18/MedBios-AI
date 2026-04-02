@@ -68,7 +68,7 @@ function Settings() {
                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition ${
                   activeSection === s.id
                     ? 'bg-accent-blue/15 text-accent-blue'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-bg-secondary'
                 }`}
               >
                 <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -99,19 +99,19 @@ function Settings() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">Full Name</label>
-                    <input type="text" defaultValue={user?.name} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-border-subtle text-text-primary text-sm focus:outline-none focus:border-accent-blue transition" />
+                    <input type="text" defaultValue={user?.name} className="w-full px-4 py-2.5 rounded-xl bg-bg-elevated border border-border-subtle text-text-primary text-sm focus:outline-none focus:border-accent-blue transition" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">Email</label>
-                    <input type="email" defaultValue={user?.email} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-border-subtle text-text-primary text-sm focus:outline-none focus:border-accent-blue transition" />
+                    <input type="email" defaultValue={user?.email} className="w-full px-4 py-2.5 rounded-xl bg-bg-elevated border border-border-subtle text-text-primary text-sm focus:outline-none focus:border-accent-blue transition" />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">Role</label>
-                    <input type="text" defaultValue={user?.role} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-border-subtle text-text-primary text-sm focus:outline-none focus:border-accent-blue transition" readOnly />
+                    <input type="text" defaultValue={user?.role} className="w-full px-4 py-2.5 rounded-xl bg-bg-elevated border border-border-subtle text-text-primary text-sm focus:outline-none focus:border-accent-blue transition" readOnly />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-1.5">Member Since</label>
-                    <input type="text" defaultValue={new Date(user?.registeredAt || user?.loginTime).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-border-subtle text-text-muted text-sm" readOnly />
+                    <input type="text" defaultValue={new Date(user?.registeredAt || user?.loginTime).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} className="w-full px-4 py-2.5 rounded-xl bg-bg-elevated border border-border-subtle text-text-muted text-sm" readOnly />
                   </div>
                 </div>
                 <button
@@ -162,7 +162,7 @@ function Settings() {
                     <button
                       key={c.id}
                       onClick={() => { setSelectedAccent(c.id); addToast(`Accent: ${c.label}`, 'info'); }}
-                      className={`flex flex-col items-center gap-2 px-4 py-3 rounded-xl border transition ${selectedAccent === c.id ? 'border-white/20 bg-white/5' : 'border-transparent hover:bg-white/[0.02]'}`}
+                      className={`flex flex-col items-center gap-2 px-4 py-3 rounded-xl border transition ${selectedAccent === c.id ? 'border-white/20 bg-bg-elevated' : 'border-transparent hover:bg-bg-secondary'}`}
                     >
                       <div className="w-8 h-8 rounded-full ring-2 ring-offset-2 ring-offset-bg-primary transition" style={{ background: c.color, ringColor: selectedAccent === c.id ? c.color : 'transparent' }} />
                       <span className="text-[0.6rem] text-text-muted">{c.label}</span>
@@ -183,7 +183,7 @@ function Settings() {
                   { key: 'drugAlerts', label: 'Drug Interaction Alerts', desc: 'Alerts for dangerous drug combinations', important: true },
                   { key: 'weeklyDigest', label: 'Weekly Digest', desc: 'Summary of all reports analyzed this week' },
                 ].map(n => (
-                  <div key={n.key} className="flex items-center justify-between px-4 py-3 rounded-xl bg-white/[0.02] border border-border-subtle">
+                  <div key={n.key} className="flex items-center justify-between px-4 py-3 rounded-xl bg-bg-secondary border border-border-subtle">
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="text-sm text-text-primary font-medium">{n.label}</span>
@@ -208,11 +208,11 @@ function Settings() {
               <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">Keyboard Shortcuts</h3>
               <div className="space-y-2">
                 {shortcuts.map((s, i) => (
-                  <div key={i} className="flex items-center justify-between px-4 py-3 rounded-xl bg-white/[0.02] border border-border-subtle">
+                  <div key={i} className="flex items-center justify-between px-4 py-3 rounded-xl bg-bg-secondary border border-border-subtle">
                     <span className="text-sm text-text-primary">{s.action}</span>
                     <div className="flex gap-1">
                       {s.keys.map((k, j) => (
-                        <kbd key={j} className="px-2.5 py-1 rounded-lg bg-white/5 border border-border-subtle text-text-secondary text-xs font-mono shadow-sm">{k}</kbd>
+                        <kbd key={j} className="px-2.5 py-1 rounded-lg bg-bg-elevated border border-border-subtle text-text-secondary text-xs font-mono shadow-sm">{k}</kbd>
                       ))}
                     </div>
                   </div>
@@ -244,7 +244,7 @@ function Settings() {
                     { val: '30', label: 'Drug Pairs', color: 'text-accent-orange' },
                     { val: '65+', label: 'Drug Aliases', color: 'text-accent-purple' },
                   ].map((s, i) => (
-                    <div key={i} className="text-center px-3 py-3 rounded-xl bg-white/[0.02] border border-border-subtle">
+                    <div key={i} className="text-center px-3 py-3 rounded-xl bg-bg-secondary border border-border-subtle">
                       <div className={`text-lg font-bold ${s.color}`}>{s.val}</div>
                       <div className="text-[0.55rem] text-text-muted uppercase tracking-wider">{s.label}</div>
                     </div>
@@ -255,7 +255,7 @@ function Settings() {
                 <h3 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-3">Tech Stack</h3>
                 <div className="flex flex-wrap gap-2">
                   {['React 19', 'Vite', 'Tailwind v4', 'FastAPI', 'SQLAlchemy', 'PyMuPDF', 'Tesseract OCR', 'Recharts', 'ReportLab'].map(t => (
-                    <span key={t} className="px-3 py-1.5 rounded-lg bg-white/[0.03] border border-border-subtle text-text-muted text-xs">{t}</span>
+                    <span key={t} className="px-3 py-1.5 rounded-lg bg-bg-secondary border border-border-subtle text-text-muted text-xs">{t}</span>
                   ))}
                 </div>
               </div>

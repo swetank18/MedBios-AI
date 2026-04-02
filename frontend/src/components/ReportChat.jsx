@@ -102,7 +102,7 @@ function ReportChat({ reportId }) {
         {/* Typing indicator */}
         {loading && (
           <div className="flex justify-start fade-in">
-            <div className="rounded-2xl rounded-bl-sm px-4 py-3 bg-white/5 border border-border-subtle flex gap-1 items-center">
+            <div className="rounded-2xl rounded-bl-sm px-4 py-3 bg-bg-elevated border border-border-subtle flex gap-1 items-center">
               <span className="w-1.5 h-1.5 rounded-full bg-accent-blue animate-bounce" style={{ animationDelay: '0ms' }} />
               <span className="w-1.5 h-1.5 rounded-full bg-accent-blue animate-bounce" style={{ animationDelay: '150ms' }} />
               <span className="w-1.5 h-1.5 rounded-full bg-accent-blue animate-bounce" style={{ animationDelay: '300ms' }} />

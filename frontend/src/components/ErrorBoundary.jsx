@@ -42,7 +42,7 @@ class ErrorBoundary extends Component {
                 Try Again
               </button>
               <Link to="/">
-                <button className="px-5 py-2 rounded-xl border border-border-subtle text-text-secondary text-sm font-medium hover:bg-white/5 transition">
+                <button className="px-5 py-2 rounded-xl border border-border-subtle text-text-secondary text-sm font-medium hover:bg-bg-secondary transition">
                   Go to Dashboard
                 </button>
               </Link>

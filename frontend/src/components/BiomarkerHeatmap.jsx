@@ -1,11 +1,11 @@
 import { useState } from 'react';
 
 const STATUS_COLORS = {
-  critical_high: { bg: '#991b1b', border: '#dc2626', glow: 'rgba(239,68,68,0.6)' },
-  critical_low:  { bg: '#991b1b', border: '#dc2626', glow: 'rgba(239,68,68,0.6)' },
-  high:          { bg: '#7c2d12', border: '#f97316', glow: 'rgba(249,115,22,0.4)' },
-  low:           { bg: '#713f12', border: '#eab308', glow: 'rgba(234,179,8,0.4)' },
-  normal:        { bg: '#14532d', border: '#22c55e', glow: 'rgba(34,197,94,0.3)' },
+  critical_high: { bg: '#fee2e2', border: '#ef4444', glow: 'rgba(239,68,68,0.25)',  text: '#991b1b' },
+  critical_low:  { bg: '#fee2e2', border: '#ef4444', glow: 'rgba(239,68,68,0.25)',  text: '#991b1b' },
+  high:          { bg: '#ffedd5', border: '#f97316', glow: 'rgba(249,115,22,0.25)', text: '#7c2d12' },
+  low:           { bg: '#fef9c3', border: '#eab308', glow: 'rgba(234,179,8,0.25)',  text: '#713f12' },
+  normal:        { bg: '#dcfce7', border: '#10b981', glow: 'rgba(16,185,129,0.2)',  text: '#14532d' },
 };
 
 function BiomarkerHeatmap({ labValues = [] }) {
@@ -86,10 +86,10 @@ function BiomarkerHeatmap({ labValues = [] }) {
               onMouseEnter={() => setHovered(i)}
               onMouseLeave={() => setHovered(null)}
             >
-              <div className="text-[0.6rem] text-white/60 truncate mb-1">{lab.test_name}</div>
-              <div className="text-sm font-bold text-white tabular-nums">
+              <div className="text-[0.6rem] truncate mb-1" style={{ color: cfg.text, opacity: 0.7 }}>{lab.test_name}</div>
+              <div className="text-sm font-bold tabular-nums" style={{ color: cfg.text }}>
                 {lab.value}
-                <span className="text-[0.55rem] text-white/40 ml-0.5">{lab.unit || ''}</span>
+                <span className="text-[0.55rem] ml-0.5" style={{ color: cfg.text, opacity: 0.5 }}>{lab.unit || ''}</span>
               </div>
 
               {/* Expanded tooltip on hover */}

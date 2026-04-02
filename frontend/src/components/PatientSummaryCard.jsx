@@ -102,7 +102,7 @@ function PatientSummaryCard({ patientInfo = {}, labValues = [], riskScores = {},
         {metrics.map((m, i) => (
           <div key={i} className="text-center group cursor-default">
             <div className="flex justify-center mb-1.5">
-              <div className="w-7 h-7 rounded-lg bg-white/[0.03] border border-border-subtle flex items-center justify-center group-hover:bg-white/[0.06] transition">
+              <div className="w-7 h-7 rounded-lg bg-bg-secondary border border-border-subtle flex items-center justify-center group-hover:bg-bg-secondary transition">
                 <svg className={`w-3.5 h-3.5 ${m.color}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d={m.icon} />
                 </svg>
@@ -119,7 +119,7 @@ function PatientSummaryCard({ patientInfo = {}, labValues = [], riskScores = {},
       {/* Mini progress bar showing normal vs abnormal ratio */}
       {labValues.length > 0 && (
         <div className="mt-3 flex items-center gap-2">
-          <div className="flex-1 h-1.5 rounded-full bg-white/5 overflow-hidden flex">
+          <div className="flex-1 h-1.5 rounded-full bg-bg-elevated overflow-hidden flex">
             <div className="h-full bg-accent-green rounded-l-full transition-all duration-700" style={{ width: `${(normalCount / labValues.length) * 100}%` }} />
             <div className="h-full bg-accent-orange transition-all duration-700" style={{ width: `${((abnormalCount - criticalCount) / labValues.length) * 100}%` }} />
             <div className="h-full bg-accent-red rounded-r-full transition-all duration-700" style={{ width: `${(criticalCount / labValues.length) * 100}%` }} />

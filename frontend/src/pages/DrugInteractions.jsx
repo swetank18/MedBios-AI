@@ -138,7 +138,7 @@ function DrugInteractions() {
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && addMed(inputValue)}
               placeholder="Type medication name..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-border-subtle text-text-primary placeholder-text-muted text-sm focus:outline-none focus:border-accent-blue transition"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-bg-elevated border border-border-subtle text-text-primary placeholder-text-muted text-sm focus:outline-none focus:border-accent-blue transition"
             />
           </div>
           <button
@@ -163,7 +163,7 @@ function DrugInteractions() {
                   className={`px-2.5 py-1 rounded-lg text-xs transition ${
                     isAdded
                       ? 'bg-accent-blue/15 text-accent-blue border border-accent-blue/30 cursor-default'
-                      : 'border border-border-subtle text-text-muted hover:text-text-primary hover:border-text-muted hover:bg-white/5'
+                      : 'border border-border-subtle text-text-muted hover:text-text-primary hover:border-text-muted hover:bg-bg-secondary'
                   }`}
                 >
                   {isAdded ? '✓' : '+'} {med}

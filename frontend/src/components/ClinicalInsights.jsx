@@ -49,7 +49,7 @@ function ClinicalInsights({ insights = [], evidenceChains = [], graphRisks = [],
             <div key={i} className="rounded-xl border border-border-subtle overflow-hidden transition-all">
               <button
                 onClick={() => toggle(i)}
-                className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-white/[0.015] transition"
+                className="w-full flex items-start gap-3 px-4 py-3 text-left hover:bg-bg-secondary transition"
               >
                 <div className={`w-7 h-7 rounded-lg ${conf.badge} flex items-center justify-center shrink-0 mt-0.5`}>
                   {catIcon ? (
@@ -90,7 +90,7 @@ function ClinicalInsights({ insights = [], evidenceChains = [], graphRisks = [],
                       <p className="text-[0.6rem] text-text-muted font-bold uppercase tracking-wider mb-2">Supporting Evidence</p>
                       <div className="space-y-1.5">
                         {insight.evidence.map((ev, j) => (
-                          <div key={j} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.02] text-xs">
+                          <div key={j} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-bg-secondary text-xs">
                             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${conf.dot}`} />
                             <span className="text-text-secondary">{ev.test}:</span>
                             <span className="text-text-primary font-semibold tabular-nums">{ev.value}</span>
@@ -109,7 +109,7 @@ function ClinicalInsights({ insights = [], evidenceChains = [], graphRisks = [],
                         {chain.evidence_items.map((ev, j) => (
                           <div key={j} className="relative">
                             <div className="absolute -left-[21px] top-2 w-2.5 h-2.5 rounded-full bg-accent-blue/30 border-2 border-bg-primary" />
-                            <div className="px-3 py-2 rounded-lg bg-white/[0.02] text-xs">
+                            <div className="px-3 py-2 rounded-lg bg-bg-secondary text-xs">
                               <span className="text-text-primary font-medium">{ev.test_name}:</span>
                               <span className="text-text-secondary ml-1">{ev.observed_value} {ev.unit}</span>
                               {ev.reference_range && <span className="text-text-muted ml-1">(ref: {ev.reference_range})</span>}
