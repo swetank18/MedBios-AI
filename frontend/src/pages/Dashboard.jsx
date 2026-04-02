@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { listReports, getAnalytics, getReportPdfUrl } from '../api';
 import { AreaChart, Area, ResponsiveContainer, Tooltip } from 'recharts';
+import RoleDashboard from '../components/RoleDashboard';
 
 /* ─── Animated counter ─── */
 function AnimatedNumber({ target, suffix = '', duration = 1200 }) {
@@ -85,6 +86,9 @@ function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-8">
+
+      {/* ─── Role-based Dashboard Panel ─── */}
+      <RoleDashboard />
 
       {/* ─── Hero Banner ─── */}
       <div className="relative mb-8 rounded-2xl overflow-hidden border border-border-subtle slide-up">
