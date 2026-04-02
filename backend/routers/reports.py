@@ -438,8 +438,11 @@ async def export_report_pdf(report_id: str, db: AsyncSession = Depends(get_db)):
         from reportlab.lib.pagesizes import letter
         from reportlab.lib import colors
         from reportlab.lib.units import inch
-        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage
         from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.graphics.shapes import Drawing, String, Rect
+        from reportlab.graphics.charts.barcharts import HorizontalBarChart
+        from reportlab.graphics import renderPDF
     except ImportError:
         raise HTTPException(status_code=500, detail="reportlab not installed")
 
@@ -510,6 +513,50 @@ async def export_report_pdf(report_id: str, db: AsyncSession = Depends(get_db)):
     ]))
     story.append(t)
     story.append(Spacer(1, 16))
+
+    # ── Risk Score Bar Chart ──
+    clinical_result = report.analysis_result or {}
+    risk_scores_data = clinical_result.get("risk_scores", {})
+    ORGAN_KEYS = [
+        "hematological", "cardiovascular", "renal", "metabolic",
+        "hepatic", "electrolyte", "inflammatory", "nutritional",
+    ]
+    chart_rows = [(k.capitalize(), float(risk_scores_data.get(k, 0))) for k in ORGAN_KEYS
+                  if risk_scores_data.get(k, 0) > 0]
+
+    if chart_rows:
+        story.append(Paragraph("Organ System Risk Scores", heading_style))
+        drawing_width = 450
+        bar_height = 16
+        chart_height = len(chart_rows) * (bar_height + 6) + 40
+        d = Drawing(drawing_width, chart_height)
+
+        chart = HorizontalBarChart()
+        chart.x = 100
+        chart.y = 10
+        chart.width = drawing_width - 120
+        chart.height = chart_height - 20
+        chart.data = [[row[1] for row in chart_rows]]
+        chart.valueAxis.valueMin = 0
+        chart.valueAxis.valueMax = 100
+        chart.valueAxis.valueStep = 25
+        chart.categoryAxis.categoryNames = [row[0] for row in chart_rows]
+        chart.categoryAxis.labels.fontSize = 8
+        chart.valueAxis.labels.fontSize = 8
+        chart.bars[0].fillColor = colors.HexColor("#10b981")
+
+        # Colour bars red/orange for high risk
+        for i, (_, score) in enumerate(chart_rows):
+            if score >= 70:
+                chart.bars[(0, i)].fillColor = colors.HexColor("#dc2626")
+            elif score >= 50:
+                chart.bars[(0, i)].fillColor = colors.HexColor("#ea580c")
+            elif score >= 30:
+                chart.bars[(0, i)].fillColor = colors.HexColor("#f59e0b")
+
+        d.add(chart)
+        story.append(d)
+        story.append(Spacer(1, 16))
 
     # Abnormal findings
     if abnormal:

@@ -254,6 +254,63 @@ def get_subgraph(entities: list[str], depth: int = 2) -> dict:
     return {"nodes": nodes, "edges": edges}
 
 
+def enrich_graph_from_report(insights: list[dict], abnormal_labs: list[dict]) -> int:
+    """
+    Dynamically enrich the knowledge graph with findings from a specific report.
+
+    - Adds disease nodes for newly identified conditions (if not already present)
+    - Adds 'indicates' edges from the triggering lab tests to each inferred condition
+    - Marks all enriched nodes/edges with enriched=True so they are distinguishable
+
+    Returns the number of new nodes/edges added.
+    """
+    G = get_graph()
+    added = 0
+
+    # Map canonical lab name → insight labels triggered by that lab
+    lab_to_conditions: dict[str, list[str]] = {}
+    for insight in insights:
+        condition_id = insight.get("condition", "").lower().replace(" ", "_").replace("/", "_")
+        condition_label = insight.get("condition", "")
+        confidence = insight.get("confidence", "low")
+        category = insight.get("category", "")
+
+        if not condition_id:
+            continue
+
+        # Add disease node if missing
+        if condition_id not in G:
+            G.add_node(
+                condition_id,
+                type="disease",
+                label=condition_label,
+                category=category,
+                enriched=True,
+            )
+            added += 1
+            logger.debug(f"KG enrichment: added node '{condition_id}'")
+
+        # Connect each triggering abnormal lab → condition
+        for lab in abnormal_labs:
+            canonical = lab.get("canonical_name", "").lower()
+            if not canonical or canonical not in G:
+                continue
+            if not G.has_edge(canonical, condition_id):
+                G.add_edge(
+                    canonical,
+                    condition_id,
+                    relationship="indicates",
+                    description=f"{canonical} indicates {condition_label} ({confidence} confidence)",
+                    confidence=confidence,
+                    enriched=True,
+                )
+                added += 1
+
+    if added:
+        logger.info(f"KG enrichment: added {added} nodes/edges from report analysis")
+    return added
+
+
 def get_full_graph_stats() -> dict:
     """Return statistics about the knowledge graph."""
     G = get_graph()

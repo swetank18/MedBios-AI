@@ -236,6 +236,125 @@ ALIASES = {
 }
 
 
+# ═══ Age / Gender — Adjusted Reference Ranges ═══
+# Structure: test_name → list of override dicts evaluated in order.
+# Each override has optional "gender", "age_min", "age_max" filters
+# and the replacement min/max (and optionally critical thresholds).
+AGE_GENDER_ADJUSTMENTS: dict[str, list[dict]] = {
+    # CBC — sex-specific
+    "hemoglobin": [
+        {"gender": "male",   "age_min": 18, "age_max": 64, "min": 13.5, "max": 17.5},
+        {"gender": "male",   "age_min": 65,               "min": 12.5, "max": 17.0},
+        {"gender": "female", "age_min": 18, "age_max": 49, "min": 12.0, "max": 15.5},
+        {"gender": "female", "age_min": 50,               "min": 11.5, "max": 15.5},
+    ],
+    "hematocrit": [
+        {"gender": "male",   "min": 41.0, "max": 53.0},
+        {"gender": "female", "min": 36.0, "max": 46.0},
+    ],
+    "rbc": [
+        {"gender": "male",   "min": 4.5, "max": 5.9},
+        {"gender": "female", "min": 4.0, "max": 5.2},
+    ],
+    # Metabolic — sex-specific creatinine
+    "creatinine": [
+        {"gender": "male",   "min": 0.7, "max": 1.3},
+        {"gender": "female", "min": 0.5, "max": 1.1},
+    ],
+    # Iron — sex-specific ferritin
+    "ferritin": [
+        {"gender": "male",   "min": 20.0, "max": 300.0},
+        {"gender": "female", "age_min": 0,  "age_max": 49, "min": 12.0, "max": 150.0},
+        {"gender": "female", "age_min": 50,               "min": 12.0, "max": 300.0},
+    ],
+    # Lipids — sex-specific HDL thresholds
+    "hdl": [
+        {"gender": "male",   "min": 40.0, "max": 100.0},
+        {"gender": "female", "min": 50.0, "max": 100.0},
+    ],
+    # Uric acid — sex-specific
+    "uric_acid": [
+        {"gender": "male",   "min": 3.5, "max": 7.2},
+        {"gender": "female", "min": 2.5, "max": 6.0},
+    ],
+    # CK — sex-specific (muscle mass)
+    "ck": [
+        {"gender": "male",   "min": 52.0,  "max": 336.0},
+        {"gender": "female", "min": 38.0,  "max": 176.0},
+    ],
+    # ESR — age + sex adjusted (simplified Westergren upper limit)
+    "esr": [
+        {"gender": "male",   "age_min": 0,  "age_max": 49, "min": 0.0, "max": 15.0},
+        {"gender": "male",   "age_min": 50,               "min": 0.0, "max": 20.0},
+        {"gender": "female", "age_min": 0,  "age_max": 49, "min": 0.0, "max": 20.0},
+        {"gender": "female", "age_min": 50,               "min": 0.0, "max": 30.0},
+    ],
+    # NT-proBNP — age-stratified thresholds
+    "nt_probnp": [
+        {"age_min": 0,  "age_max": 50, "min": 0.0, "max": 75.0},
+        {"age_min": 51, "age_max": 75, "min": 0.0, "max": 125.0},
+        {"age_min": 76,               "min": 0.0, "max": 450.0},
+    ],
+    # PSA — age-stratified (ng/mL)
+    "psa": [
+        {"age_min": 40, "age_max": 49, "min": 0.0, "max": 2.5},
+        {"age_min": 50, "age_max": 59, "min": 0.0, "max": 3.5},
+        {"age_min": 60, "age_max": 69, "min": 0.0, "max": 4.5},
+        {"age_min": 70,               "min": 0.0, "max": 6.5},
+    ],
+    # Testosterone — sex-specific
+    "testosterone": [
+        {"gender": "male",   "min": 270.0, "max": 1070.0},
+        {"gender": "female", "min": 15.0,  "max": 70.0},
+    ],
+    # GFR — stricter lower threshold for elderly
+    "egfr": [
+        {"age_min": 0,  "age_max": 64, "min": 90.0, "max": 120.0, "critical_low": 15.0},
+        {"age_min": 65,               "min": 60.0, "max": 120.0, "critical_low": 15.0},
+    ],
+}
+
+
+def _get_adjusted_ref(canonical: str, patient_info: dict) -> dict:
+    """
+    Return the reference range dict adjusted for patient age and gender.
+    Falls back to base REFERENCE_RANGES if no override matches.
+    """
+    base = REFERENCE_RANGES.get(canonical)
+    if not base or canonical not in AGE_GENDER_ADJUSTMENTS:
+        return base
+
+    age = patient_info.get("age")
+    gender = (patient_info.get("gender") or "").lower().strip()
+    # normalise gender tokens
+    if gender in ("m", "male", "man", "boy"):
+        gender = "male"
+    elif gender in ("f", "female", "woman", "girl"):
+        gender = "female"
+    else:
+        gender = ""
+
+    for override in AGE_GENDER_ADJUSTMENTS[canonical]:
+        # gender filter
+        req_gender = override.get("gender", "")
+        if req_gender and gender and req_gender != gender:
+            continue
+        # age_min filter
+        if "age_min" in override and age is not None and age < override["age_min"]:
+            continue
+        # age_max filter
+        if "age_max" in override and age is not None and age > override["age_max"]:
+            continue
+        # Matched — merge override into a copy of base
+        adjusted = dict(base)
+        for key in ("min", "max", "critical_low", "critical_high"):
+            if key in override:
+                adjusted[key] = override[key]
+        return adjusted
+
+    return base
+
+
 def normalize_test_name(raw_name: str) -> str:
     """Normalize a test name to its canonical form with fuzzy matching."""
     cleaned = raw_name.strip().lower()
@@ -296,16 +415,19 @@ def classify_severity(value: float, ref: dict) -> dict:
         return {"status": "normal", "severity_score": 0, "deviation_pct": round(dist_from_mid * 50, 1)}
 
 
-def detect_abnormals(lab_values: list[dict]) -> list[dict]:
+def detect_abnormals(lab_values: list[dict], patient_info: dict = None) -> list[dict]:
     """
     Detect abnormal lab values with multi-level severity scoring.
+    Uses age/gender-aware reference ranges when patient_info is provided.
+
     Input:  [{"test_name": "hemoglobin", "value": 8.9, "unit": "g/dL"}, ...]
     Output: Same list with status, severity_score, deviation_pct, reference_min, reference_max, category
     """
+    patient_info = patient_info or {}
     results = []
     for lab in lab_values:
         canonical = normalize_test_name(lab.get("test_name", ""))
-        ref = REFERENCE_RANGES.get(canonical)
+        ref = _get_adjusted_ref(canonical, patient_info)
 
         entry = {
             **lab,
