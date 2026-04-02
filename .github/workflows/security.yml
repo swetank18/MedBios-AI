@@ -1,0 +1,22 @@
+name: Security
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday 9am UTC
+
+jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python safety check
+        run: |
+          pip install safety
+          safety check -r backend/requirements.txt --json || true
+
+      - name: Node audit
+        run: npm audit --audit-level=high || true
+        working-directory: frontend
