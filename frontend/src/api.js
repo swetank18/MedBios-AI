@@ -22,6 +22,34 @@ export const uploadReport = async (file, onProgress) => {
   return response.data;
 };
 
+/**
+ * Upload a report and get back {report_id, status: "pending"} immediately.
+ * Use together with openPipelineSocket() to stream progress.
+ */
+export const uploadReportPending = async (file, onUploadProgress) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const response = await api.post('/reports/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: (e) => {
+      if (onUploadProgress && e.total) {
+        onUploadProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    },
+  });
+  return response.data; // { report_id, patient_id, status: "pending" }
+};
+
+/**
+ * Open a WebSocket to /ws/pipeline/{reportId}.
+ * Returns the WebSocket instance; caller attaches .onmessage / .onerror.
+ */
+export const openPipelineSocket = (reportId) => {
+  const wsBase = (import.meta.env.VITE_API_URL || 'http://localhost:8000')
+    .replace(/^http/, 'ws');
+  return new WebSocket(`${wsBase}/ws/pipeline/${reportId}`);
+};
+
 export const listReports = async (page = 1, pageSize = 20) => {
   const response = await api.get(`/reports/?page=${page}&page_size=${pageSize}`);
   return response.data;

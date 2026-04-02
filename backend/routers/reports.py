@@ -15,6 +15,10 @@ from database import get_db
 from models import Patient, Report, LabResult, ClinicalInsight
 from services.pipeline import run_full_pipeline_async
 from services.audit import log_action
+
+# In-memory store: report_id -> (file_bytes, filename)
+# Consumed once by the WebSocket pipeline endpoint then cleared.
+_pending_uploads: dict[str, tuple[bytes, str]] = {}
 from services.knowledge_graph import get_full_graph_stats, get_subgraph, query_related
 from services.trend_analysis import get_patient_trends
 from services.drug_interactions import run_full_interaction_check
@@ -32,9 +36,10 @@ async def upload_report(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Upload a medical report PDF for AI-powered analysis.
-    
-    Runs the full pipeline: OCR → NLP → Reasoning → Knowledge Graph → Report
+    Upload a medical report PDF.
+
+    Creates a pending Report record immediately and returns {report_id, status: "pending"}.
+    The caller should then open WebSocket /ws/pipeline/{report_id} to stream analysis progress.
     """
     # Validate file type
     allowed_types = [
@@ -55,90 +60,43 @@ async def upload_report(
     if len(file_bytes) > 50 * 1024 * 1024:  # 50MB limit
         raise HTTPException(status_code=400, detail="File too large. Maximum 50MB.")
 
-    # Run analysis pipeline
+    # Create a pending patient + report record right away
     try:
-        result = await run_full_pipeline_async(file_bytes, filename=file.filename)
-    except Exception as e:
-        logger.error(f"Pipeline failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
-
-    if result.get("status") == "error":
-        raise HTTPException(status_code=422, detail=result.get("error", "Analysis failed"))
-
-    # ── Persist to database ──
-    try:
-        # Create or find patient
-        patient_info = result.get("patient_info", {})
-        patient = Patient(
-            name=patient_info.get("name"),
-            age=patient_info.get("age"),
-            gender=patient_info.get("gender"),
-        )
+        patient = Patient(name=None, age=None, gender=None)
         db.add(patient)
         await db.flush()
 
-        # Create report
         report = Report(
             patient_id=patient.id,
             filename=file.filename,
-            document_type=result.get("document_type", "unknown"),
-            raw_text=result.get("raw_text", ""),
-            status="completed",
-            analysis_result=result.get("clinical_report"),
+            document_type="unknown",
+            raw_text=None,
+            status="pending",
+            analysis_result=None,
         )
         db.add(report)
         await db.flush()
-
-        # Store lab results
-        for lab in result.get("lab_values", []):
-            lab_result = LabResult(
-                report_id=report.id,
-                test_name=lab.get("canonical_name", lab.get("test_name", "")),
-                value=lab.get("value"),
-                unit=lab.get("unit") or lab.get("expected_unit"),
-                reference_min=lab.get("reference_min"),
-                reference_max=lab.get("reference_max"),
-                status=lab.get("status", "normal"),
-                raw_text=lab.get("raw_text", ""),
-            )
-            db.add(lab_result)
-
-        # Store clinical insights
-        for insight in result.get("insights", []):
-            clinical_insight = ClinicalInsight(
-                report_id=report.id,
-                condition=insight.get("condition", ""),
-                confidence=insight.get("confidence", "low"),
-                category=insight.get("category", ""),
-                evidence=insight.get("evidence"),
-                reasoning=insight.get("reasoning", ""),
-                recommendation=insight.get("recommendation", ""),
-            )
-            db.add(clinical_insight)
-
         await db.commit()
-        result["report_id"] = report.id
-        result["patient_id"] = patient.id
-
+        report_id = report.id
+        patient_id = patient.id
     except Exception as e:
-        logger.error(f"Database save failed: {e}")
+        logger.error(f"Failed to create pending report record: {e}")
         await db.rollback()
-        # Still return results even if DB save fails
-        result["db_warning"] = "Results generated but database save failed"
+        raise HTTPException(status_code=500, detail="Failed to initialise report record.")
+
+    # Stash file bytes for the WebSocket pipeline to pick up
+    _pending_uploads[report_id] = (file_bytes, file.filename)
 
     await log_action(
         db,
-        action="report.create",
+        action="report.upload",
         resource_type="report",
-        resource_id=result.get("report_id"),
+        resource_id=report_id,
         request=request,
         detail={"filename": file.filename},
     )
 
-    # Remove raw_text from response (too large)
-    result.pop("raw_text", None)
-
-    return result
+    return {"report_id": report_id, "patient_id": patient_id, "status": "pending"}
 
 
 @router.get("/")
