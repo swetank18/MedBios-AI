@@ -1,12 +1,28 @@
+databases:
+  - name: medbios-db
+    plan: free
+    databaseName: medbios
+    user: medbios
+
 services:
   - type: web
     name: medbios-ai-backend
     runtime: python
     rootDir: backend
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.0"
       - key: DATABASE_URL
-        value: sqlite+aiosqlite:///./medbios.db
+        fromDatabase:
+          name: medbios-db
+          property: connectionString
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: MEDBIOS_ENCRYPTION_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: "https://med-bios-ai-djn7.vercel.app,https://medbios.vercel.app,http://localhost:5173"

@@ -203,16 +203,70 @@ VITE_API_URL=https://your-backend.onrender.com
 
 ## Deployment
 
-### Render (Backend)
+### Render (Backend + PostgreSQL)
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
+1. Push this repo to GitHub
+2. Go to [render.com](https://render.com) → **New** → **Blueprint**
+3. Connect your GitHub repo — Render auto-reads `render.yaml` and provisions:
+   - A **free PostgreSQL** database (`medbios-db`)
+   - A **free Python web service** (`medbios-ai-backend`) with all env vars wired up
+4. After deploy, note your backend URL: `https://medbios-ai-backend.onrender.com`
+
+**Manual setup (without Blueprint):**
 1. Connect GitHub repo → set root directory to `backend`
 2. Build command: `pip install -r requirements.txt`
 3. Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-4. Add env vars: `DATABASE_URL`, `CORS_ORIGINS`
+4. Health check path: `/health`
+5. Add env vars (see table below)
 
 ### Vercel (Frontend)
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new)
+
 1. Connect GitHub repo → set root directory to `frontend`
-2. Framework preset: Vite
-3. Add env var: `VITE_API_URL=https://your-backend.onrender.com`
+2. Framework preset: **Vite**
+3. Add environment variable: `VITE_API_URL=https://medbios-ai-backend.onrender.com/api`
+4. Deploy — `frontend/vercel.json` handles SPA routing and security headers automatically
+
+### Required Environment Variables
+
+| Variable | Where | Description | How to Generate |
+|----------|-------|-------------|-----------------|
+| `DATABASE_URL` | Render | PostgreSQL connection string | Auto-injected by Render Blueprint |
+| `JWT_SECRET_KEY` | Render | JWT signing secret | `python -c "import secrets; print(secrets.token_hex(32))"` |
+| `MEDBIOS_ENCRYPTION_KEY` | Render | Fernet encryption key | `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"` |
+| `CORS_ORIGINS` | Render | Comma-separated allowed origins | `https://your-app.vercel.app,http://localhost:5173` |
+| `GOOGLE_API_KEY` | Render | Gemini Vision OCR (optional) | [Google AI Studio](https://aistudio.google.com/) |
+| `VITE_API_URL` | Vercel | Backend API base URL | `https://medbios-ai-backend.onrender.com/api` |
+| `VITE_WS_URL` | Vercel | WebSocket base URL | `wss://medbios-ai-backend.onrender.com` |
+
+### Local Development
+
+```bash
+# 1. Clone
+git clone https://github.com/your-username/MedBios-AI.git
+cd MedBios-AI
+
+# 2. Backend
+cd backend
+python -m venv venv
+source venv/bin/activate        # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp ../.env.example .env         # edit .env with your values
+uvicorn main:app --reload --port 8000
+
+# 3. Frontend (new terminal)
+cd frontend
+npm install
+npm run dev
+# Visit http://localhost:5173
+
+# 4. Generate secrets (first-time setup)
+python -c "import secrets; print(secrets.token_hex(32))"
+python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+```
 
 ---
 

@@ -15,13 +15,19 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 DATA_DIR.mkdir(exist_ok=True)
 
 # Database
-DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite+aiosqlite:///{BASE_DIR / 'medbios.db'}")
+# Render gives postgresql:// or postgres://, asyncpg needs postgresql+asyncpg://
+_raw_url = os.getenv("DATABASE_URL", f"sqlite+aiosqlite:///{BASE_DIR / 'medbios.db'}")
+if _raw_url.startswith("postgres://"):
+    _raw_url = _raw_url.replace("postgres://", "postgresql+asyncpg://", 1)
+elif _raw_url.startswith("postgresql://") and "+asyncpg" not in _raw_url:
+    _raw_url = _raw_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+DATABASE_URL = _raw_url
 
 # API
 API_PREFIX = "/api"
 CORS_ORIGINS = os.getenv(
     "CORS_ORIGINS",
-    "http://localhost:5173,http://localhost:3000,https://med-bios-ai-djn7.vercel.app"
+    "http://localhost:5173,http://localhost:3000,https://med-bios-ai-djn7.vercel.app,https://medbios-ai-backend.onrender.com"
 ).split(",")
 
 # OCR
