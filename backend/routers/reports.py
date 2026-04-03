@@ -807,119 +807,314 @@ async def chat_with_report(report_id: str, payload: ChatMessage, db: AsyncSessio
     insight_conditions = [ins.condition for ins in insights]
     risk_scores = clinical_report.get("risk_scores", {})
 
-    answer = _build_chat_response(msg, abnormal_labs, insights, risk_scores, insight_conditions)
+    answer = await _build_chat_response(msg, abnormal_labs, insights, risk_scores, insight_conditions, lab_results)
 
     return {"answer": answer}
 
 
-def _build_chat_response(msg, abnormal_labs, insights, risk_scores, conditions):
-    """Build a context-aware response using actual report data."""
+def _build_report_context(abnormal_labs, insights, risk_scores, all_labs):
+    """Build a concise text context block for use in AI prompts."""
+    lines = []
+    if abnormal_labs:
+        lines.append("ABNORMAL LAB VALUES:")
+        for lr in abnormal_labs:
+            ref = f"{lr.reference_min}-{lr.reference_max}" if lr.reference_min else "N/A"
+            lines.append(f"  {lr.test_name.replace('_',' ').title()}: {lr.value} {lr.unit or ''} (ref {ref}) [{lr.status}]")
+    if insights:
+        lines.append("\nCLINICAL FINDINGS:")
+        for ins in insights[:8]:
+            lines.append(f"  - {ins.condition} ({ins.category}, {ins.confidence}): {ins.reasoning}")
+            if ins.recommendation:
+                lines.append(f"    Recommendation: {ins.recommendation}")
+    if isinstance(risk_scores, dict):
+        overall = risk_scores.get("overall", 0)
+        if overall:
+            lines.append(f"\nOVERALL RISK SCORE: {overall}%")
+        high = [(k, v) for k, v in risk_scores.items() if isinstance(v, dict) and v.get("score", 0) >= 40]
+        if high:
+            lines.append("ELEVATED SYSTEMS: " + ", ".join(f"{k} {v['score']}%" for k, v in high))
+    return "\n".join(lines)
+
+
+async def _try_gemini(question: str, context: str) -> str | None:
+    """Send question + context to Gemini and return the response, or None on failure."""
+    import os
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        return None
+    try:
+        import httpx
+        prompt = (
+            "You are MedBios Clinical AI, a helpful medical report assistant. "
+            "Answer the user's question based strictly on the lab report context below. "
+            "Be specific, reference actual values, and use plain language. "
+            "Format your answer with clear sections separated by blank lines where helpful.\n\n"
+            f"REPORT CONTEXT:\n{context}\n\n"
+            f"USER QUESTION: {question}\n\nANSWER:"
+        )
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"temperature": 0.3, "maxOutputTokens": 512},
+        }
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.post(url, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    except Exception as exc:
+        logger.warning(f"Gemini fallback failed: {exc}")
+        return None
+
+
+async def _build_chat_response(msg, abnormal_labs, insights, risk_scores, conditions, all_labs):
+    """Build a context-aware response using actual report data, with Gemini fallback."""
+
+    # Try Gemini first
+    context = _build_report_context(abnormal_labs, insights, risk_scores, all_labs)
+    gemini_answer = await _try_gemini(msg, context)
+    if gemini_answer:
+        return gemini_answer
+
+    # ── Rule-based fallback ──────────────────────────────────────────────────
 
     # Greetings
     if any(w in msg for w in ("hello", "hi ", "hey", "greetings")):
         abnormal_count = len(abnormal_labs)
         if abnormal_count:
-            return (f"Hello! I've analyzed your report and found {abnormal_count} abnormal value(s). "
-                    "Feel free to ask about any specific test, condition, or recommendation.")
+            names = ", ".join(lr.test_name.replace("_", " ").title() for lr in abnormal_labs[:4])
+            return (
+                f"Hello! I've analyzed your report and found {abnormal_count} abnormal value(s).\n\n"
+                f"Key findings include: {names}.\n\n"
+                "Feel free to ask about any specific test, condition, or recommendation."
+            )
         return "Hello! Your report looks good overall. Ask me about any specific test or concern."
 
-    # Check if user is asking about a specific lab test
+    # Specific lab test lookup
     for lab in abnormal_labs:
-        test_lower = lab.test_name.lower()
-        if test_lower in msg or test_lower.replace("_", " ") in msg:
-            status_desc = {"high": "above", "low": "below", "critical_high": "critically above",
-                           "critical_low": "critically below"}.get(lab.status, lab.status)
-            ref_range = f"{lab.reference_min}-{lab.reference_max}" if lab.reference_min else "standard range"
-            answer = (f"Your {lab.test_name.replace('_', ' ').title()} is {lab.value} {lab.unit or ''}, "
-                      f"which is {status_desc} the reference range ({ref_range}).")
-            # Attach related insights
+        test_lower = lab.test_name.lower().replace("_", " ")
+        if test_lower in msg or lab.test_name.lower() in msg:
+            status_desc = {
+                "high": "above", "low": "below",
+                "critical_high": "critically above", "critical_low": "critically below",
+            }.get(lab.status, lab.status)
+            ref = f"{lab.reference_min}–{lab.reference_max}" if lab.reference_min else "standard range"
+            answer = (
+                f"Your {lab.test_name.replace('_', ' ').title()} is {lab.value} {lab.unit or ''}.\n\n"
+                f"This is {status_desc} the normal reference range ({ref}).\n\n"
+            )
             related = [ins for ins in insights
                        if lab.test_name.lower() in (ins.reasoning or "").lower()
                        or lab.test_name.lower() in (ins.condition or "").lower()]
             if related:
-                answer += f" This is associated with: {related[0].condition}. {related[0].reasoning}"
+                ins = related[0]
+                answer += f"Clinical significance: {ins.condition}\n{ins.reasoning}\n\n"
+                if ins.recommendation:
+                    answer += f"Recommendation: {ins.recommendation}"
             return answer
 
-    # Topic-based responses using actual data
+    # "What is [test]" — explanation query
+    if any(w in msg for w in ("what is", "what are", "explain", "meaning of", "tell me about")):
+        for lab in all_labs:
+            name = lab.test_name.lower().replace("_", " ")
+            if name in msg:
+                ref = f"{lab.reference_min}–{lab.reference_max} {lab.unit or ''}" if lab.reference_min else "varies by lab"
+                return (
+                    f"{lab.test_name.replace('_', ' ').title()} measures {name} levels in the blood.\n\n"
+                    f"Your result: {lab.value} {lab.unit or ''} (normal range: {ref}).\n\n"
+                    f"Status: {lab.status.replace('_', ' ')}.\n\n"
+                    "Ask me 'why is my [test] high/low?' for possible causes."
+                )
+
+    # "Why is my [test] high/low"
+    if any(w in msg for w in ("why is", "why are", "why high", "why low", "cause", "reason")):
+        for lab in abnormal_labs:
+            name = lab.test_name.lower().replace("_", " ")
+            if name in msg:
+                related = [ins for ins in insights if name in (ins.reasoning or "").lower()]
+                if related:
+                    return (
+                        f"Possible reasons for your elevated/low {lab.test_name.replace('_',' ').title()} "
+                        f"({lab.value} {lab.unit or ''}):\n\n"
+                        f"{related[0].reasoning}\n\n"
+                        f"This is associated with: {related[0].condition}.\n\n"
+                        f"Recommendation: {related[0].recommendation or 'Consult your physician.'}"
+                    )
+                return (
+                    f"Your {lab.test_name.replace('_',' ').title()} is {lab.value} {lab.unit or ''} "
+                    f"({lab.status.replace('_',' ')}).\n\n"
+                    "Common causes depend on overall clinical context. "
+                    "Please consult your physician for a personalised explanation."
+                )
+
+    # How to improve / what can I do
+    if any(w in msg for w in ("how do i improve", "what can i do", "how to improve", "how can i", "improve my")):
+        recs = [ins.recommendation for ins in insights if ins.recommendation]
+        if recs:
+            items = "\n".join(f"• {r}" for r in recs[:6])
+            return f"Based on your report, here are the most relevant actions:\n\n{items}\n\nCheck the Recommendations tab for a full personalised plan."
+        return ("Lifestyle improvements that generally help:\n\n"
+                "• Balanced diet low in refined sugars and saturated fats\n"
+                "• 30 minutes of moderate exercise at least 5 days per week\n"
+                "• Adequate sleep (7–9 hours)\n"
+                "• Follow up with your physician for targeted guidance.")
+
+    # Is it serious / should I worry
+    if any(w in msg for w in ("serious", "worry", "worr", "dangerous", "urgent", "critical", "should i be")):
+        critical = [lr for lr in abnormal_labs if "critical" in (lr.status or "")]
+        overall = risk_scores.get("overall", 0) if isinstance(risk_scores, dict) else 0
+        if critical:
+            names = ", ".join(lr.test_name.replace("_", " ").title() for lr in critical)
+            return (
+                f"Yes — your report shows {len(critical)} critical value(s): {names}.\n\n"
+                "Critical values require prompt medical attention. "
+                "Please contact your healthcare provider as soon as possible."
+            )
+        if overall >= 60:
+            return (
+                f"Your overall risk score is {overall}%, which is in the elevated range.\n\n"
+                "While not immediately critical, this warrants a follow-up appointment with your doctor "
+                "to discuss the findings and create a management plan."
+            )
+        if abnormal_labs:
+            return (
+                f"Your report has {len(abnormal_labs)} abnormal value(s), but none are in the critical range.\n\n"
+                "It is still advisable to discuss these results with your physician, "
+                "especially if you have symptoms."
+            )
+        return "Your values are within normal ranges. No urgent concern, but routine follow-up is always recommended."
+
+    # Glucose / diabetes
     if any(w in msg for w in ("glucose", "sugar", "diabetes", "hba1c", "a1c")):
         relevant = [ins for ins in insights if "diabet" in (ins.condition or "").lower()
-                     or "glucose" in (ins.condition or "").lower()]
+                    or "glucose" in (ins.condition or "").lower()]
+        glucose_lab = next((lr for lr in all_labs if "glucose" in lr.test_name.lower()), None)
         if relevant:
             ins = relevant[0]
-            return f"{ins.condition} ({ins.confidence} confidence): {ins.reasoning} Recommendation: {ins.recommendation}"
+            val_info = f" (your glucose: {glucose_lab.value} {glucose_lab.unit or ''})" if glucose_lab else ""
+            return (
+                f"{ins.condition}{val_info}\n\n"
+                f"Confidence: {ins.confidence}\n\n"
+                f"{ins.reasoning}\n\n"
+                f"Recommendation: {ins.recommendation or 'Consult your physician.'}"
+            )
+        if glucose_lab:
+            ref = f"{glucose_lab.reference_min}–{glucose_lab.reference_max}" if glucose_lab.reference_min else "70–100 mg/dL"
+            return f"Your glucose level is {glucose_lab.value} {glucose_lab.unit or ''} (normal: {ref}). No diabetes-related findings were flagged in your report."
         return "No glucose-related abnormalities were detected in your report."
 
-    if any(w in msg for w in ("cholesterol", "lipid", "heart", "cardiovascular", "ldl", "hdl")):
+    # Cholesterol / cardiovascular
+    if any(w in msg for w in ("cholesterol", "lipid", "heart", "cardiovascular", "ldl", "hdl", "triglyceride")):
         relevant = [ins for ins in insights if ins.category == "Cardiovascular"]
+        cv_risk = risk_scores.get("cardiovascular", {}) if isinstance(risk_scores, dict) else {}
         if relevant:
-            parts = [f"- {ins.condition} ({ins.confidence}): {ins.reasoning}" for ins in relevant]
-            return "Cardiovascular findings:\n" + "\n".join(parts)
-        cv_risk = risk_scores.get("cardiovascular", {})
+            parts = [f"• {ins.condition} ({ins.confidence}): {ins.reasoning}" for ins in relevant]
+            score_line = f"\nCardiovascular risk score: {cv_risk.get('score','N/A')}% ({cv_risk.get('level','N/A')})" if cv_risk else ""
+            return "Cardiovascular findings:\n\n" + "\n".join(parts) + score_line
         if cv_risk:
-            return f"Your cardiovascular risk score is {cv_risk.get('score', 'N/A')}% ({cv_risk.get('level', 'N/A')})."
+            return f"Your cardiovascular risk score is {cv_risk.get('score','N/A')}% ({cv_risk.get('level','N/A')}). No specific lipid abnormalities were flagged."
         return "No significant cardiovascular concerns were found in your report."
 
+    # Kidney
     if any(w in msg for w in ("kidney", "renal", "creatinine", "egfr")):
         relevant = [ins for ins in insights if ins.category == "Nephrology"
-                     or "kidney" in (ins.condition or "").lower()]
+                    or "kidney" in (ins.condition or "").lower()]
+        cr_lab = next((lr for lr in all_labs if "creatinine" in lr.test_name.lower()), None)
         if relevant:
             ins = relevant[0]
-            return f"{ins.condition}: {ins.reasoning} Recommendation: {ins.recommendation}"
+            val = f" (creatinine: {cr_lab.value} {cr_lab.unit or ''})" if cr_lab else ""
+            return f"{ins.condition}{val}\n\n{ins.reasoning}\n\nRecommendation: {ins.recommendation or 'Consult a nephrologist.'}"
+        if cr_lab:
+            ref = f"{cr_lab.reference_min}–{cr_lab.reference_max}" if cr_lab.reference_min else "standard"
+            return f"Your creatinine is {cr_lab.value} {cr_lab.unit or ''} (ref: {ref}, status: {cr_lab.status}). No kidney-related findings were flagged."
         return "No kidney-related abnormalities were detected in your report."
 
+    # Risk score
     if any(w in msg for w in ("risk", "danger", "score", "overall")):
         overall = risk_scores.get("overall", 0) if isinstance(risk_scores, dict) else 0
         high_systems = [
-            f"{sys}: {data.get('score', 0)}% ({data.get('level', 'N/A')})"
-            for sys, data in (risk_scores if isinstance(risk_scores, dict) else {}).items()
-            if isinstance(data, dict) and data.get("score", 0) >= 40
+            f"  • {sys}: {sdata.get('score', 0)}% ({sdata.get('level', 'N/A')})"
+            for sys, sdata in (risk_scores if isinstance(risk_scores, dict) else {}).items()
+            if isinstance(sdata, dict) and sdata.get("score", 0) >= 40
         ]
-        answer = f"Your overall risk score is {overall}%."
+        answer = f"Your overall health risk score is {overall}%."
         if high_systems:
-            answer += " Elevated risk areas: " + "; ".join(high_systems) + "."
+            answer += "\n\nElevated risk areas:\n" + "\n".join(high_systems)
+        else:
+            answer += "\n\nNo individual system shows elevated risk."
         return answer
 
-    if any(w in msg for w in ("abnormal", "problem", "wrong", "issue", "concern")):
+    # Abnormal findings
+    if any(w in msg for w in ("abnormal", "problem", "wrong", "issue", "concern", "concerning", "most")):
         if abnormal_labs:
-            items = [f"- {lr.test_name.replace('_', ' ').title()}: {lr.value} ({lr.status})"
-                     for lr in abnormal_labs[:8]]
-            return "Abnormal findings in your report:\n" + "\n".join(items)
+            items = [
+                f"  • {lr.test_name.replace('_',' ').title()}: {lr.value} {lr.unit or ''} [{lr.status.replace('_',' ')}]"
+                for lr in abnormal_labs[:8]
+            ]
+            return f"Abnormal findings in your report ({len(abnormal_labs)} total):\n\n" + "\n".join(items)
         return "No abnormal values were found in your report."
 
-    if any(w in msg for w in ("diet", "food", "eat", "nutrition", "exercise")):
-        nutrition_insights = [ins for ins in insights
-                              if ins.category in ("Nutrition", "Endocrinology")]
-        if nutrition_insights:
-            recs = [ins.recommendation for ins in nutrition_insights if ins.recommendation]
-            if recs:
-                return "Based on your results, here are relevant recommendations:\n" + "\n".join(f"- {r}" for r in recs)
-        return ("Based on your clinical profile, a balanced diet and regular exercise are recommended. "
-                "Check the Recommendations tab for personalized guidance.")
+    # Diet / nutrition / exercise
+    if any(w in msg for w in ("diet", "food", "eat", "nutrition", "exercise", "lifestyle", "supplement")):
+        nutrition_insights = [ins for ins in insights if ins.category in ("Nutrition", "Endocrinology", "Lifestyle")]
+        all_recs = [ins.recommendation for ins in insights if ins.recommendation]
+        if all_recs:
+            items = "\n".join(f"• {r}" for r in all_recs[:5])
+            return f"Lifestyle and dietary recommendations based on your results:\n\n{items}\n\nSee the full Recommendations tab for a detailed plan."
+        return ("General recommendations for your profile:\n\n"
+                "• Eat a diet rich in vegetables, lean protein, and whole grains\n"
+                "• Limit processed foods, refined sugar, and saturated fats\n"
+                "• Exercise at least 150 minutes per week\n"
+                "• Check the Recommendations tab for personalised guidance.")
 
-    if any(w in msg for w in ("summary", "overview", "explain", "report")):
-        summary = clinical_report_summary(conditions, abnormal_labs, risk_scores)
-        return summary
+    # Medications
+    if any(w in msg for w in ("medication", "medicine", "drug", "prescription", "pill")):
+        drug_insights = [ins for ins in insights if ins.category in ("Pharmacology", "Drug Interaction")]
+        if drug_insights:
+            parts = [f"• {ins.condition}: {ins.reasoning}" for ins in drug_insights]
+            return "Medication-related findings:\n\n" + "\n".join(parts) + "\n\nAlways confirm with your prescribing physician."
+        return ("No specific medication interactions were flagged in this report.\n\n"
+                "Always inform your doctor about all medications and supplements you are taking, "
+                "as they can affect lab values.")
+
+    # Summary / overview
+    if any(w in msg for w in ("summary", "overview", "summarize", "report", "tell me everything")):
+        return _clinical_report_summary(conditions, abnormal_labs, risk_scores)
 
     # Fallback with actual context
     if conditions:
-        return (f"Your report identified {len(conditions)} clinical finding(s): "
-                f"{', '.join(conditions[:3])}. "
-                "Ask about any specific condition, lab test, or recommendation for more details.")
-    return ("I'm your MedBios AI assistant. Your report has been analyzed. "
-            "Ask about specific tests, conditions, risk scores, or recommendations.")
+        cond_list = "\n".join(f"• {c}" for c in conditions[:5])
+        return (
+            f"Your report identified {len(conditions)} clinical finding(s):\n\n{cond_list}\n\n"
+            "Ask about any specific condition, lab test, risk score, or recommendation for more details."
+        )
+    return ("I'm your MedBios AI assistant. Your report has been analyzed.\n\n"
+            "You can ask about:\n"
+            "• Specific lab tests (e.g. 'explain my glucose')\n"
+            "• Risk scores and urgency\n"
+            "• Diet, lifestyle, and supplement recommendations\n"
+            "• Whether values are serious or need follow-up")
 
 
-def clinical_report_summary(conditions, abnormal_labs, risk_scores):
-    """Generate a text summary from report data."""
-    parts = [f"Your report summary: {len(abnormal_labs)} abnormal value(s) detected."]
+def _clinical_report_summary(conditions, abnormal_labs, risk_scores):
+    """Generate a detailed text summary from report data."""
+    parts = []
+    parts.append(f"Report summary: {len(abnormal_labs)} abnormal value(s) detected.")
+    if abnormal_labs:
+        top = ", ".join(f"{lr.test_name.replace('_',' ').title()} ({lr.value} {lr.unit or ''}, {lr.status})"
+                        for lr in abnormal_labs[:4])
+        parts.append(f"Key abnormal values: {top}.")
     if conditions:
         parts.append(f"Clinical findings: {', '.join(conditions[:5])}.")
     if isinstance(risk_scores, dict):
         overall = risk_scores.get("overall", 0)
         if overall:
             parts.append(f"Overall risk score: {overall}%.")
-    parts.append("Consult your physician for personalized medical advice.")
-    return " ".join(parts)
+        high = [k for k, v in risk_scores.items() if isinstance(v, dict) and v.get("score", 0) >= 50]
+        if high:
+            parts.append(f"Elevated systems: {', '.join(high)}.")
+    parts.append("Always consult your physician for personalised medical advice.")
+    return "\n\n".join(parts)
 
 
 # ── Health Recommendations ──

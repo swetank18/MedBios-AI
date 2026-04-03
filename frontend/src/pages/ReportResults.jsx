@@ -341,7 +341,7 @@ function ReportResults() {
 
       {/* AI Chat Panel */}
       <div className={`fixed bottom-24 right-6 w-[360px] shadow-2xl shadow-black/60 z-50 transition-all duration-300 origin-bottom-right ${chatOpen ? 'scale-100 opacity-100' : 'scale-90 opacity-0 pointer-events-none'}`}>
-        <ReportChat reportId={id} />
+        <ReportChat reportId={id} labValues={data?.lab_values || []} />
       </div>
     </div>
   );
