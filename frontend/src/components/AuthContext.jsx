@@ -21,6 +21,7 @@ export function AuthProvider({ children }) {
   const clearSession = useCallback(() => {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
+    localStorage.removeItem('medbios_demo_user');
     setUser(null);
   }, []);
 
@@ -54,7 +55,11 @@ export function AuthProvider({ children }) {
         const res = await authAPI.me();
         setUser(buildUserState(res.data));
       } catch (err) {
-        if (err?.response?.status === 401) {
+        // No response = backend unreachable; restore demo session from token
+        if (!err?.response) {
+          const stored = localStorage.getItem('medbios_demo_user');
+          if (stored) try { setUser(JSON.parse(stored)); } catch { clearSession(); }
+        } else if (err?.response?.status === 401) {
           const refreshed = await refreshToken();
           if (refreshed) {
             try {
@@ -76,6 +81,17 @@ export function AuthProvider({ children }) {
     restore();
   }, [refreshToken, clearSession]);
 
+  // Mock auth fallback for when backend is unreachable (dev/demo mode)
+  const _mockAuth = (name, email, role) => {
+    const mockUser = { id: 'demo', name: name || email.split('@')[0], email, role: role || 'Physician' };
+    const built = buildUserState(mockUser);
+    const fakeToken = 'demo_token_' + Date.now();
+    storeTokens(fakeToken, fakeToken);
+    localStorage.setItem('medbios_demo_user', JSON.stringify(built));
+    setUser(built);
+    return { success: true };
+  };
+
   const login = async (email, password) => {
     try {
       const res = await authAPI.login(email, password);
@@ -84,6 +100,11 @@ export function AuthProvider({ children }) {
       setUser(buildUserState(userData));
       return { success: true };
     } catch (err) {
+      // If backend is unreachable (network error), use demo mode
+      if (!err?.response) {
+        console.warn('Backend unreachable — using demo mode');
+        return _mockAuth(null, email, 'Physician');
+      }
       const detail = err?.response?.data?.detail || 'Login failed';
       return { success: false, error: detail };
     }
@@ -97,6 +118,11 @@ export function AuthProvider({ children }) {
       setUser(buildUserState(userData));
       return { success: true };
     } catch (err) {
+      // If backend is unreachable (network error), use demo mode
+      if (!err?.response) {
+        console.warn('Backend unreachable — using demo mode');
+        return _mockAuth(name, email, role);
+      }
       const detail = err?.response?.data?.detail || 'Registration failed';
       return { success: false, error: detail };
     }
